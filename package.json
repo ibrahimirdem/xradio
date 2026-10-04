@@ -1,0 +1,20 @@
+{
+  "name": "xradio",
+  "version": "0.0.1",
+  "private": true,
+  "description": "XRadio — a browser radio where two AI DJs follow your X (Twitter) feed and talk you through the news over music (Edge/Chrome extension, beta).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "test:e2e": "node tests/e2e/run-e2e.mjs",
+    "mock": "node tests/mock/gemini-mock.mjs",
+    "icons": "python tools/make_icons.py",
+    "pack": "node tools/pack.mjs",
+    "test:live": "node tests/live/gemini-live.mjs",
+    "screenshots": "node tools/screenshots.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.51.1"
+  },
+  "license": "MIT"
+}

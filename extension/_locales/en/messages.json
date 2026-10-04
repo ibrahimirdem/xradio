@@ -1,0 +1,8 @@
+{
+  "extName": { "message": "XRadio — Your Feed, On Air" },
+  "extDescription": { "message": "Two AI radio DJs follow your X feed for you and talk you through what matters over music. Stay informed without opening X." },
+  "actionTitle": { "message": "XRadio" },
+  "cmdToggle": { "message": "Start / stop the radio" },
+  "cmdTalk": { "message": "Let the DJs cover the news now" },
+  "cmdSkip": { "message": "Skip to the next track" }
+}

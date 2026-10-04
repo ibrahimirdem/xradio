@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.test-profile*/
+tests/e2e/out/
+*.log
+.env.local
+.env

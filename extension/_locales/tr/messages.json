@@ -1,0 +1,8 @@
+{
+  "extName": { "message": "XRadio — Gündem Radyosu" },
+  "extDescription": { "message": "X akışını senin yerine takip eden, iki yapay zekâ DJ'in sohbetiyle anlatan arka plan radyosu. X'e girmeden gündemde kal." },
+  "actionTitle": { "message": "XRadio" },
+  "cmdToggle": { "message": "Radyoyu başlat / durdur" },
+  "cmdTalk": { "message": "DJ'ler gündemi şimdi anlatsın" },
+  "cmdSkip": { "message": "Sıradaki parçaya geç" }
+}

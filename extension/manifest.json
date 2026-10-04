@@ -1,0 +1,103 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "short_name": "XRadio",
+  "version": "0.0.1",
+  "version_name": "0.0.1 beta",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "__MSG_actionTitle__",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "studio.html",
+    "open_in_tab": true
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "offscreen",
+    "alarms",
+    "notifications",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://www.youtube.com/*",
+    "https://music.youtube.com/*",
+    "https://www.youtube-nocookie.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "content/x-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "content/x-collector.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://music.youtube.com/*"
+      ],
+      "js": [
+        "content/yt-control.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "toggle-radio": {
+      "suggested_key": {
+        "default": "Alt+Shift+R"
+      },
+      "description": "__MSG_cmdToggle__"
+    },
+    "talk-now": {
+      "suggested_key": {
+        "default": "Alt+Shift+G"
+      },
+      "description": "__MSG_cmdTalk__"
+    },
+    "skip-track": {
+      "suggested_key": {
+        "default": "Alt+Shift+N"
+      },
+      "description": "__MSG_cmdSkip__"
+    }
+  }
+}

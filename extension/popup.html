@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>XRadio</title>
+  <link rel="stylesheet" href="ui/base.css">
+  <link rel="stylesheet" href="ui/popup.css">
+</head>
+<body>
+  <header class="top">
+    <div class="logo">
+      <div class="mark">X</div>
+      <div>
+        <div class="name" id="station-name">XRadio</div>
+        <div class="tag" data-i18n>Gündemin frekansı</div>
+      </div>
+    </div>
+    <div class="row">
+      <span class="onair" id="onair"><span class="led"></span><span id="onair-text">KAPALI</span></span>
+      <button class="icon ghost" id="open-studio" title="Stüdyo" data-i18n-title>⚙</button>
+    </div>
+  </header>
+
+  <div class="lang-banner hidden" id="lang-banner"></div>
+
+  <section class="booth">
+    <div class="dj" id="dj-a"><div class="avatar"><span class="ini">D</span><span class="mic">🎙</span></div><div class="djname">Defne</div></div>
+    <div class="center">
+      <div class="phase" id="phase"></div>
+      <div class="bars" id="bars"></div>
+    </div>
+    <div class="dj" id="dj-b"><div class="avatar b"><span class="ini">K</span><span class="mic">🎙</span></div><div class="djname">Kaan</div></div>
+  </section>
+
+  <section class="captions" id="captions">
+    <div class="empty muted" data-i18n>Başlattığında DJ'lerin söyledikleri burada akar.</div>
+  </section>
+
+  <section class="np" id="np">
+    <div class="np-icon">♪</div>
+    <div class="grow">
+      <div class="np-title" id="np-title"></div>
+      <div class="np-sub dim" id="np-sub"></div>
+    </div>
+  </section>
+
+  <section class="controls">
+    <button class="primary big" id="toggle">▶</button>
+    <button id="talk" title="DJ'ler gündemi şimdi anlatsın (Alt+Shift+G)" data-i18n-title><span data-i18n>🎙 Şimdi anlat</span></button>
+    <button class="icon" id="skip" title="Atla (Alt+Shift+N)" data-i18n-title>⏭</button>
+  </section>
+
+  <section class="sliders">
+    <label><span data-i18n>🎵 Müzik</span> <input type="range" id="vol-music" min="0" max="1" step="0.01"></label>
+    <label><span data-i18n>🗣 Ses</span> <input type="range" id="vol-voice" min="0" max="1.5" step="0.01"></label>
+  </section>
+
+  <section class="recent">
+    <div class="sec-title" data-i18n>Son konuşulanlar</div>
+    <ul id="recent"></ul>
+  </section>
+
+  <footer class="status" id="status"></footer>
+  <script type="module" src="ui/popup.js"></script>
+</body>
+</html>
