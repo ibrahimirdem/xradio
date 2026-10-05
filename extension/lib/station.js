@@ -878,6 +878,7 @@ export class Station {
     try { await this.browserVoice.ready; out.browserVoices = this.browserVoice.pick(this.settings.language); out.browserVoices = { ...out.browserVoices.names, turkish: out.browserVoices.native, native: out.browserVoices.native, lang: this.settings.language, count: this.browserVoice.voices.length }; } catch (e) { out.browserVoices = 'hata: ' + e.message; }
     out.music = { source: this.settings.musicSource, status: this.musicStatus, nowPlaying: this.music?.nowPlaying?.() || null, youtube: this.music?.debug?.() || this.ytDebugLast || null };
     out.engine = this.engineMode;
+    out.levels = this.engine ? { master: this.engine.masterLevel, music: this.engine.musicLevel, voice: this.engine.voiceLevel } : null;
     out.models = this.models;
     out.stats = this.desk.stats();
     out.errors = this.errors.slice(-8);

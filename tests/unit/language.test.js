@@ -54,7 +54,7 @@ test('t(): Türkçe arayüzde anahtar aynen, İngilizce arayüzde çeviri; deği
   assert.equal(getUiLang(), 'en');
   assert.equal(uiLocale(), 'en-US');
   assert.equal(t('{n} dk önce', { n: 5 }), '5 min ago');
-  assert.equal(t('▶ Yayını başlat'), '▶ Start broadcast');
+  assert.equal(t('Yayını başlat'), 'Start broadcast');
   assert.equal(t('bilinmeyen metin'), 'bilinmeyen metin', 'eksik anahtar Türkçe kalır, çökmez');
   setUiLang('tr');
 });
@@ -115,4 +115,13 @@ test('manifest: ad/açıklama/kısayollar her yerel dilde var, sürüm beta biç
   assert.match(m.version, /^0\.0\.\d+$/);
   assert.match(m.version_name, /beta/);
   assert.ok(m.default_locale === 'en');
+});
+
+test('odak kalkanı: deneme sayısı yer tutucusu kalkana kadar korunur', () => {
+  for (const lang of ['tr', 'en']) {
+    const s = shieldStrings(lang, ['Defne', 'Kaan']);
+    assert.match(s.shCount, /\{n\}/);
+    assert.match(s.shTextOn, /Defne/);
+    assert.ok(s.shRecent);
+  }
 });

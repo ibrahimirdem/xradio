@@ -9,54 +9,55 @@
 <body>
   <header class="top">
     <div class="logo">
-      <div class="mark">X</div>
+      <div class="mark"><i data-icon="broadcast-fill" data-size="18"></i></div>
       <div>
         <div class="name" id="station-name">XRadio</div>
-        <div class="tag" data-i18n>Gündemin frekansı</div>
+        <div class="tag-line" data-i18n>Gündemin frekansı</div>
       </div>
     </div>
     <div class="row">
       <span class="onair" id="onair"><span class="led"></span><span id="onair-text">KAPALI</span></span>
-      <button class="icon ghost" id="open-studio" title="Stüdyo" data-i18n-title>⚙</button>
+      <button class="icon ghost" id="open-studio" title="Stüdyo" data-i18n-title><i data-icon="app-window" data-size="18"></i></button>
     </div>
   </header>
 
   <div class="lang-banner hidden" id="lang-banner"></div>
 
-  <section class="booth">
-    <div class="dj" id="dj-a"><div class="avatar"><span class="ini">D</span><span class="mic">🎙</span></div><div class="djname">Defne</div></div>
-    <div class="center">
-      <div class="phase" id="phase"></div>
-      <div class="bars" id="bars"></div>
+  <section class="deck">
+    <div class="booth">
+      <div class="dj" id="dj-a"><div class="avatar"><span class="ini">D</span><span class="mic"><i data-icon="microphone-fill" data-size="12"></i></span></div><div class="djname">Defne</div></div>
+      <div class="center">
+        <div class="bars" id="bars"></div>
+        <div class="phase" id="phase"></div>
+      </div>
+      <div class="dj" id="dj-b"><div class="avatar b"><span class="ini">K</span><span class="mic"><i data-icon="microphone-fill" data-size="12"></i></span></div><div class="djname">Kaan</div></div>
     </div>
-    <div class="dj" id="dj-b"><div class="avatar b"><span class="ini">K</span><span class="mic">🎙</span></div><div class="djname">Kaan</div></div>
-  </section>
-
-  <section class="captions" id="captions">
-    <div class="empty muted" data-i18n>Başlattığında DJ'lerin söyledikleri burada akar.</div>
+    <div class="captions" id="captions">
+      <div class="empty dim" data-i18n>Başlattığında DJ'lerin söyledikleri burada akar.</div>
+    </div>
   </section>
 
   <section class="np" id="np">
-    <div class="np-icon">♪</div>
+    <div class="np-icon"><i data-icon="music-notes" data-size="18"></i></div>
     <div class="grow">
       <div class="np-title" id="np-title"></div>
-      <div class="np-sub dim" id="np-sub"></div>
+      <div class="np-sub" id="np-sub"></div>
     </div>
   </section>
 
   <section class="controls">
-    <button class="primary big" id="toggle">▶</button>
-    <button id="talk" title="DJ'ler gündemi şimdi anlatsın (Alt+Shift+G)" data-i18n-title><span data-i18n>🎙 Şimdi anlat</span></button>
-    <button class="icon" id="skip" title="Atla (Alt+Shift+N)" data-i18n-title>⏭</button>
+    <button class="primary lg" id="toggle"></button>
+    <button class="lg" id="talk" title="DJ'ler gündemi şimdi anlatsın (Alt+Shift+G)" data-i18n-title><i data-icon="microphone" data-size="16"></i><span data-i18n>Şimdi anlat</span></button>
+    <button class="icon lg" id="skip" title="Atla (Alt+Shift+N)" data-i18n-title><i data-icon="skip-forward-fill" data-size="16"></i></button>
   </section>
 
-  <section class="sliders">
-    <label><span data-i18n>🎵 Müzik</span> <input type="range" id="vol-music" min="0" max="1" step="0.01"></label>
-    <label><span data-i18n>🗣 Ses</span> <input type="range" id="vol-voice" min="0" max="1.5" step="0.01"></label>
+  <section class="mixer">
+    <label><span class="eyebrow"><i data-icon="music-notes" data-size="12"></i><span data-i18n>Müzik</span></span><input type="range" id="vol-music" min="0" max="1" step="0.01"></label>
+    <label><span class="eyebrow"><i data-icon="microphone" data-size="12"></i><span data-i18n>Ses</span></span><input type="range" id="vol-voice" min="0" max="1.5" step="0.01"></label>
   </section>
 
   <section class="recent">
-    <div class="sec-title" data-i18n>Son konuşulanlar</div>
+    <div class="eyebrow" data-i18n>Son konuşulanlar</div>
     <ul id="recent"></ul>
   </section>
 

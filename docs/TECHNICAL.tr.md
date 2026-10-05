@@ -157,5 +157,6 @@ npm run test:live     # gerçek Gemini'ye karşı küçük canlı test (aşağı
   - `audio/` mikser, jenerikler, YouTube oynatıcı, yerleşik yedek müzik motoru
   - `content/` X ve YouTube içerik betikleri
 - `extension/ui/i18n.js` — arayüz çevirileri (anahtar Türkçe metnin kendisi; Türkçe dışındaki her dilde İngilizce arayüz). `node tools/i18n-keys.mjs` eksik çevirileri listeler; birim testi de aynı denetimi yapar.
+- **Tasarım:** `extension/ui/base.css` tasarım token'larını (renk, yazı, köşe) ve bileşenleri tanımlar; "yayın konsolu" dili: sıcak nötr yüzeyler, tek vurgu rengi (sinyal turuncusu `--accent`), monospace etiketler, açık/koyu tema. İkonlar [Phosphor](https://phosphoricons.com) setinden (MIT) `npm run icons` ile `extension/ui/icons.js` ve `extension/content/shield-icons.js` dosyalarına gömülür; çalışma anında dış kaynak yüklenmez. `tests/unit/design.test.js` emoji ikon, mor renk ya da gradyan kullanılmadığını ve her ikonun sette bulunduğunu denetler.
 - `tests/` — birim testleri, sahte Gemini sunucusu, sahte x.com sayfası, uçtan uca test.
 - Ayarlar → "Metin/Triyaj/Ses modeli" alanlarına başka model adları yazabilirsin; gelişmiş testler için `apiBase` ayarı sahte sunucuya yönlendirilebilir.

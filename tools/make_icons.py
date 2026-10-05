@@ -1,46 +1,44 @@
-"""XRadio simgelerini üretir (16, 32, 48, 128 px). Gereksinim: Pillow."""
+"""XRadio simgelerini üretir (16, 32, 48, 128 px). Gereksinim: Pillow.
+
+Marka işareti: sinyal turuncusu kare üzerinde koyu "yayın" sembolü (ortada nokta, iki yanda dalgalar).
+Uygulama içindeki logo ile aynıdır; gradyan ya da gölge yoktur, küçük boyutta da okunur.
+"""
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 OUT = Path(__file__).resolve().parent.parent / "extension" / "icons"
 OUT.mkdir(parents=True, exist_ok=True)
-S = 512  # yüksek çözünürlükte çizip küçült
+
+ORANGE = (255, 90, 31, 255)
+INK = (27, 13, 5, 255)
+S = 1024  # yüksek çözünürlükte çizip küçült (kenar yumuşatma)
 
 
-def lerp(a, b, t):
-    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
+def draw(size):
+    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    pad = 0 if size >= 48 else 0
+    d.rounded_rectangle([pad, pad, S - 1 - pad, S - 1 - pad], radius=int(S * 0.22), fill=ORANGE)
+
+    cx = cy = S // 2
+    # Küçük boyutlarda daha kalın çizgi ve tek dalga: 16 px'te bile seçilsin
+    if size <= 16:
+        dot, waves, width = 120, [(300, 110)], 0
+    elif size <= 32:
+        dot, waves, width = 100, [(250, 92), (390, 92)], 0
+    else:
+        dot, waves, width = 88, [(230, 78), (370, 78)], 0
+    d.ellipse([cx - dot, cy - dot, cx + dot, cy + dot], fill=INK)
+    for r, w in waves:
+        box = [cx - r, cy - r, cx + r, cy + r]
+        d.arc(box, start=-48, end=48, fill=INK, width=w)
+        d.arc(box, start=132, end=228, fill=INK, width=w)
+    return img.resize((size, size), Image.LANCZOS)
 
 
 def make():
-    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    grad = Image.new("RGBA", (S, S))
-    gp = grad.load()
-    c1, c2 = (139, 92, 246), (236, 72, 153)
-    for y in range(S):
-        for x in range(S):
-            t = (x + y) / (2 * S)
-            gp[x, y] = lerp(c1, c2, t) + (255,)
-    mask = Image.new("L", (S, S), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, S - 1, S - 1], radius=118, fill=255)
-    img.paste(grad, (0, 0), mask)
-
-    d = ImageDraw.Draw(img)
-    # Radyo dalgaları (sağ üst)
-    cx, cy = 360, 150
-    for i, r in enumerate((54, 98, 142)):
-        d.arc([cx - r, cy - r, cx + r, cy + r], start=-80, end=10, fill=(255, 255, 255, 235 - i * 55), width=26)
-    d.ellipse([cx - 22, cy - 22, cx + 22, cy + 22], fill=(255, 255, 255, 255))
-    # Kalın "X"
-    w = 74
-    pts = [(120, 170), (330, 400)]
-    d.line(pts, fill=(255, 255, 255, 255), width=w)
-    d.line([(330, 170), (120, 400)], fill=(255, 255, 255, 255), width=w)
-    # Hafif gölge parlaklığı
-    glow = img.filter(ImageFilter.GaussianBlur(2))
-    img = Image.alpha_composite(glow, img)
     for size in (16, 32, 48, 128):
-        im = img.resize((size, size), Image.LANCZOS)
-        im.save(OUT / f"icon{size}.png")
+        draw(size).save(OUT / f"icon{size}.png")
     print("ikonlar:", OUT)
 
 

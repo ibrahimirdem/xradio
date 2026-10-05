@@ -267,6 +267,22 @@ if (run('gemini')) {
   const cards = await studio.goto(extUrl('studio.html#masa')).then(() => sleep(1000)).then(() => studio.locator('.card').count());
   check('Haber masası hikâye kartlarını gösteriyor', cards > 3, `${cards} kart`);
   await studio.goto(extUrl('studio.html#yayin'));
+
+  // Stüdyo mikseri: sürgü ayarı yazar, istasyon sesi anında uygular; sessize alma düğmesi ana sesi kapatıp geri açar
+  const slide = (id, v) => studio.evaluate(([id, v]) => { const r = document.getElementById(id); r.value = String(v); r.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
+  const levels = async () => (await swEval(() => self.xradio.command('diagnostics')))?.levels;
+  await studio.waitForSelector('#mix-musicVolume');
+  check('Stüdyoda mikser var (ana ses, müzik, DJ sesi, konuşurken müzik)', (await studio.locator('#mixer .mix-row').count()) === 4);
+  await slide('mix-musicVolume', 0.33);
+  await slide('mix-voiceVolume', 1.2);
+  const lv = await waitFor(async () => { const l = await levels(); return l && Math.abs(l.music - 0.33) < 0.005 && Math.abs(l.voice - 1.2) < 0.005 && l; }, { timeout: 8000, label: 'mikser seviyeleri' });
+  check('Mikserdeki müzik ve DJ sesi istasyona anında uygulandı', !!lv, JSON.stringify(lv));
+  check('Mikser değeri yüzde olarak gösteriliyor', (await studio.locator('#mix-musicVolume + output').textContent()) === '33%');
+  await studio.click('#mix-mute');
+  const muted = await waitFor(async () => (await levels())?.master === 0, { timeout: 8000, label: 'sessize alma' });
+  await studio.click('#mix-mute');
+  const unmuted = await waitFor(async () => (await levels())?.master > 0, { timeout: 8000, label: 'sesi açma' });
+  check('Sessize al / sesi aç düğmesi ana sesi kapatıp geri açtı', !!muted && !!unmuted, `→ ${(await levels())?.master}`);
 }
 
 // ====================================================================== 2) TTS hatası → tarayıcı sesi, geçersiz anahtar → yerel

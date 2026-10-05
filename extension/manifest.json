@@ -65,6 +65,7 @@
         "https://twitter.com/*"
       ],
       "js": [
+        "content/shield-icons.js",
         "content/x-collector.js"
       ],
       "run_at": "document_start"

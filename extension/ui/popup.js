@@ -1,10 +1,11 @@
-import { bg, cmd, onStationEvent, getSettings, saveSettings, $, h, toast, clock, cleanTitle, phaseText, connectViz, makeBars, captionNodes, kindLabel } from './common.js';
+import { bg, cmd, onStationEvent, getSettings, saveSettings, $, h, toast, clock, cleanTitle, phaseText, connectViz, makeBars, captionNodes, kindLabel, applyTheme, setButton, tag, noticeBox } from './common.js';
 import { t, setUiLang, applyI18n, uiLocale } from './i18n.js';
+import { applyIcons, iconSvg } from './icons.js';
 import { langInfo } from '../lib/config.js';
 
 let state = null;
 let settings = null;
-const setBars = makeBars($('#bars'), 22);
+const setBars = makeBars($('#bars'), 26);
 
 function renderHosts() {
   const A = settings.hostA; const B = settings.hostB;
@@ -15,29 +16,36 @@ function renderHosts() {
   $('#station-name').textContent = settings.stationName || 'XRadio';
 }
 
-/** Dil henüz onaylanmadıysa: "Dil: Türkçe · Değiştir" şeridi. */
+/** Dil henüz onaylanmadıysa: "Yayın dili: Türkçe · Değiştir · Tamam" şeridi. */
 function renderLangBanner() {
   const box = $('#lang-banner');
   if (settings.languageConfirmed) { box.classList.add('hidden'); return; }
   box.classList.remove('hidden');
   box.innerHTML = '';
+  const text = h('span', { class: 'text' }, `${t('Yayın dili')}: `, h('b', {}, langInfo(settings.language).native));
+  text.insertAdjacentHTML('afterbegin', iconSvg('globe-simple', { size: 15 }));
   box.append(
-    h('span', {}, `🌐 ${t('Yayın dili')}: `, h('b', {}, langInfo(settings.language).native)),
-    h('button', { class: 'ghost', onclick: () => { bg('openStudio', { hash: '#hosgeldin' }); window.close(); } }, t('Değiştir')),
-    h('button', { class: 'ghost', onclick: async () => { await saveSettings({ languageConfirmed: true }); settings.languageConfirmed = true; renderLangBanner(); } }, t('Tamam')),
+    text,
+    h('button', { class: 'ghost sm', onclick: () => { bg('openStudio', { hash: '#hosgeldin' }); window.close(); } }, t('Değiştir')),
+    h('button', { class: 'sm', onclick: async () => { await saveSettings({ languageConfirmed: true }); settings.languageConfirmed = true; renderLangBanner(); } }, t('Tamam')),
   );
 }
 
+let lastToggle = '';
 function render() {
   const st = state || {};
   const on = !!st.on;
   const talking = st.phase === 'talking';
-  const onair = $('#onair');
-  onair.className = 'onair' + (talking ? ' live' : on ? ' music' : '');
-  $('#onair-text').textContent = talking ? (st.segment?.kind === 'breaking' ? t('SON DAKİKA') : t('CANLI')) : on ? t('YAYINDA') : t('KAPALI');
-  $('#toggle').textContent = on ? t('■ Yayını durdur') : t('▶ Yayını başlat');
-  $('#toggle').classList.toggle('primary', !on);
-  $('#toggle').classList.toggle('danger', on);
+  const breaking = talking && st.segment?.kind === 'breaking';
+  $('#onair').className = 'onair' + (breaking ? ' breaking' : talking ? ' live' : on ? ' music' : '');
+  $('#onair-text').textContent = talking ? (breaking ? t('SON DAKİKA') : t('CANLI')) : on ? t('YAYINDA') : t('KAPALI');
+  const tg = $('#toggle');
+  const want = on ? 'stop' : 'play';
+  if (lastToggle !== want) {
+    lastToggle = want;
+    setButton(tg, on ? 'stop-fill' : 'play-fill', on ? t('Yayını durdur') : t('Yayını başlat'));
+    tg.className = 'lg ' + (on ? 'live-stop' : 'primary');
+  }
   $('#phase').textContent = phaseText(st);
 
   const np = st.nowPlaying;
@@ -53,22 +61,22 @@ function render() {
   const box = $('#captions');
   if (caps.length) {
     box.innerHTML = '';
-    caps.slice(-3).forEach((c, i, arr) => box.append(h('div', { class: `caption ${c.speaker === 'B' ? 'b-speaker' : ''} ${i < arr.length - 1 ? 'old' : ''}` }, h('b', {}, c.name + ': '), ...captionNodes(c.text, c.speaker === 'A' ? settings.hostB.name : settings.hostA.name))));
+    caps.slice(-3).forEach((c, i, arr) => box.append(h('div', { class: `caption ${c.speaker === 'B' ? 'b-speaker' : ''} ${i < arr.length - 1 ? 'old' : ''}` }, h('b', {}, c.name + ' '), ...captionNodes(c.text, c.speaker === 'A' ? settings.hostB.name : settings.hostA.name))));
   }
 
   const status = $('#status');
   status.innerHTML = '';
-  const chips = [];
-  chips.push(h('span', { class: `chip ${st.engine === 'gemini' ? 'violet' : ''}` }, st.engine === 'gemini' ? '✦ Gemini' : t('Yerel zekâ')));
-  chips.push(h('span', { class: 'chip' }, st.voiceMode === 'gemini' ? `🔊 ${t('Gemini sesi')}` : `🔊 ${t('Tarayıcı sesi')}`));
-  chips.push(h('span', { class: 'chip' }, `🌐 ${langInfo(settings.language).native}`));
-  if (st.demo) chips.push(h('span', { class: 'chip amber' }, 'DEMO'));
+  const tags = [];
+  tags.push(st.engine === 'gemini' ? tag('Gemini', 'accent', 'brain') : tag(t('Yerel zekâ'), '', 'cpu'));
+  tags.push(tag(st.voiceMode === 'gemini' ? t('Gemini sesi') : t('Tarayıcı sesi'), '', 'waveform'));
+  tags.push(tag(langInfo(settings.language).native, '', 'globe-simple'));
+  if (st.demo) tags.push(tag('Demo', 'warn', 'flask'));
   const c = st.collector;
-  if (c?.loggedIn === false) chips.push(h('span', { class: 'chip red' }, t('X girişi gerekli')));
-  else if (c?.lastAt) chips.push(h('span', { class: 'chip green' }, `X ✓ ${clock(c.lastAt)}`));
-  if (st.stats) chips.push(h('span', { class: 'chip' }, t('{a} bekleyen · {b} anlatıldı', { a: st.stats.pending || 0, b: st.stats.covered || 0 })));
-  status.append(...chips);
-  if (st.audioBlocked) status.prepend(h('div', { class: 'notice' }, t('Ses başlatılamadı — Stüdyo sayfasından "Başlat"a tıkla.')));
+  if (c?.loggedIn === false) tags.push(tag(t('X girişi gerekli'), 'danger', 'x-logo'));
+  else if (c?.lastAt) tags.push(tag(clock(c.lastAt), 'ok', 'x-logo'));
+  if (st.stats) tags.push(tag(t('{a} bekleyen · {b} anlatıldı', { a: st.stats.pending || 0, b: st.stats.covered || 0 }), '', 'stack-simple'));
+  status.append(...tags);
+  if (st.audioBlocked) status.prepend(noticeBox(t('Ses başlatılamadı — Stüdyo sayfasından "Başlat"a tıkla.'), true));
 }
 
 function setSpeaking(speaker) {
@@ -95,8 +103,10 @@ async function loadRecent() {
 
 async function init() {
   settings = await getSettings();
+  applyTheme(settings.theme);
   setUiLang(settings.language);
   applyI18n(document);
+  applyIcons(document);
   renderHosts();
   renderLangBanner();
   $('#vol-music').value = settings.musicVolume;

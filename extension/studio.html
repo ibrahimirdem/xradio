@@ -11,87 +11,102 @@
 <body>
   <aside class="side">
     <div class="logo">
-      <div class="mark">X</div>
-      <div><div class="name" id="station-name">XRadio</div><div class="tag" data-i18n>Gündemin frekansı</div></div>
+      <div class="mark"><i data-icon="broadcast-fill" data-size="18"></i></div>
+      <div><div class="name" id="station-name">XRadio</div><div class="tag-line" data-i18n>Gündemin frekansı</div></div>
     </div>
     <nav id="nav">
-      <a href="#yayin" data-tab="yayin" data-i18n>📻 Canlı yayın</a>
-      <a href="#masa" data-tab="masa" data-i18n>🗂 Haber masası</a>
-      <a href="#gecmis" data-tab="gecmis" data-i18n>🕘 Yayın geçmişi</a>
-      <a href="#ayarlar" data-tab="ayarlar" data-i18n>⚙ Ayarlar</a>
-      <a href="#test" data-tab="test" data-i18n>🩺 Sistem testi</a>
-      <a href="#hosgeldin" data-tab="hosgeldin" data-i18n>✨ Başlangıç</a>
+      <a href="#yayin" data-tab="yayin" data-ic="broadcast"><i class="nav-ic"></i><span data-i18n>Canlı yayın</span></a>
+      <a href="#masa" data-tab="masa" data-ic="newspaper"><i class="nav-ic"></i><span data-i18n>Haber masası</span></a>
+      <a href="#gecmis" data-tab="gecmis" data-ic="clock-counter-clockwise"><i class="nav-ic"></i><span data-i18n>Yayın geçmişi</span></a>
+      <a href="#ayarlar" data-tab="ayarlar" data-ic="sliders-horizontal"><i class="nav-ic"></i><span data-i18n>Ayarlar</span></a>
+      <a href="#test" data-tab="test" data-ic="heartbeat"><i class="nav-ic"></i><span data-i18n>Sistem testi</span></a>
+      <a href="#hosgeldin" data-tab="hosgeldin" data-ic="compass"><i class="nav-ic"></i><span data-i18n>Başlangıç</span></a>
     </nav>
     <div class="side-foot">
-      <span class="onair" id="onair"><span class="led"></span><span id="onair-text"></span></span>
-      <div class="dim small" id="clock"></div>
-      <div class="dim small" data-i18n>Kısayollar: Alt+Shift+R başlat/durdur · Alt+Shift+G şimdi anlat · Alt+Shift+N atla</div>
-      <div class="dim small" id="version"></div>
+      <div class="lamp-row"><span class="onair" id="onair"><span class="led"></span><span id="onair-text"></span></span><span class="clock mono" id="clock"></span></div>
+      <dl class="keys">
+        <div><dt><kbd>Alt</kbd><kbd>Shift</kbd><kbd>R</kbd></dt><dd data-i18n>Başlat / durdur</dd></div>
+        <div><dt><kbd>Alt</kbd><kbd>Shift</kbd><kbd>G</kbd></dt><dd data-i18n>Şimdi anlat</dd></div>
+        <div><dt><kbd>Alt</kbd><kbd>Shift</kbd><kbd>N</kbd></dt><dd data-i18n>Atla</dd></div>
+      </dl>
+      <div class="version mono" id="version"></div>
     </div>
   </aside>
 
   <main>
     <!-- ============================== CANLI YAYIN -->
     <section class="tab" id="tab-yayin">
-      <div class="hero panel">
-        <div class="hero-left">
-          <div class="row wrap-gap">
-            <span class="chip" id="chip-engine"></span>
-            <span class="chip" id="chip-voice"></span>
-            <span class="chip" id="chip-lang"></span>
-            <span class="chip amber hidden" id="chip-demo">DEMO</span>
-            <span class="chip" id="chip-x"></span>
-          </div>
-          <h1 id="phase"></h1>
-          <div class="muted" id="phase-sub"></div>
-          <div class="row controls">
-            <button class="primary big" id="toggle">▶</button>
-            <button id="talk" data-i18n>🎙 Gündemi şimdi anlat</button>
-            <button id="skip" data-i18n>⏭ Atla</button>
-          </div>
-          <div class="notice hidden" id="notice"></div>
+      <div class="deck">
+        <div class="deck-status">
+          <span class="tag" id="chip-engine"></span>
+          <span class="tag" id="chip-voice"></span>
+          <span class="tag" id="chip-lang"></span>
+          <span class="tag warn hidden" id="chip-demo"></span>
+          <span class="tag" id="chip-x"></span>
         </div>
-        <div class="booth">
-          <div class="dj" id="dj-a"><div class="avatar"><span class="ini">D</span><span class="mic">🎙</span></div><div class="djname">Defne</div><div class="djvoice" id="voice-a"></div></div>
-          <div class="booth-mid">
-            <div class="bars" id="bars"></div>
-            <div class="np">
-              <div class="np-title" id="np-title"></div>
-              <div class="np-sub dim" id="np-sub"></div>
+        <div class="deck-body">
+          <div class="deck-left">
+            <h1 id="phase"></h1>
+            <div class="muted" id="phase-sub"></div>
+            <div class="row controls">
+              <button class="primary lg" id="toggle"></button>
+              <button class="lg" id="talk"><i data-icon="microphone" data-size="16"></i><span data-i18n>Gündemi şimdi anlat</span></button>
+              <button class="lg" id="skip"><i data-icon="skip-forward-fill" data-size="16"></i><span data-i18n>Atla</span></button>
             </div>
+            <div class="hidden" id="notice"></div>
           </div>
-          <div class="dj" id="dj-b"><div class="avatar b"><span class="ini">K</span><span class="mic">🎙</span></div><div class="djname">Kaan</div><div class="djvoice" id="voice-b"></div></div>
+          <div class="booth">
+            <div class="dj" id="dj-a"><div class="avatar"><span class="ini">D</span><span class="mic"><i data-icon="microphone-fill" data-size="12"></i></span></div><div class="djname">Defne</div><div class="djvoice" id="voice-a"></div></div>
+            <div class="booth-mid">
+              <div class="bars" id="bars"></div>
+              <div class="np">
+                <i data-icon="music-notes" data-size="15"></i>
+                <div class="grow">
+                  <div class="np-title" id="np-title"></div>
+                  <div class="np-sub" id="np-sub"></div>
+                </div>
+              </div>
+            </div>
+            <div class="dj" id="dj-b"><div class="avatar b"><span class="ini">K</span><span class="mic"><i data-icon="microphone-fill" data-size="12"></i></span></div><div class="djname">Kaan</div><div class="djvoice" id="voice-b"></div></div>
+          </div>
         </div>
       </div>
 
       <div class="grid2">
-        <div class="panel transcript-panel">
-          <div class="panel-head"><h2 data-i18n>Canlı altyazı</h2><span class="dim small" id="seg-title"></span></div>
-          <div class="transcript" id="transcript"><div class="empty muted" data-i18n>Yayın başladığında DJ'lerin konuşmaları burada akar.</div></div>
+        <section class="panel transcript-panel">
+          <div class="panel-head"><h3 data-i18n>Canlı altyazı</h3><span class="dim small" id="seg-title"></span></div>
+          <div class="transcript" id="transcript"><div class="empty dim" data-i18n>Yayın başladığında DJ'lerin konuşmaları burada akar.</div></div>
           <form class="msg" id="msg-form">
             <input id="msg-input" maxlength="400" data-i18n-ph placeholder="Stüdyoya mesaj gönder… (ör. &quot;Deprem hakkında son durum ne?&quot; ya da &quot;biraz caz çalın&quot;)">
-            <button class="primary" type="submit" data-i18n>Gönder</button>
+            <button class="primary" type="submit"><i data-icon="paper-plane-right-fill" data-size="15"></i><span data-i18n>Gönder</span></button>
           </form>
-        </div>
+        </section>
         <div class="col">
-          <div class="panel stats" id="stats"></div>
-          <div class="panel">
-            <div class="panel-head"><h2 data-i18n>Sıradaki</h2></div>
-            <div id="queue" class="muted small">—</div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h2 data-i18n>Hızlı müzik seçimi</h2></div>
+          <section class="panel">
+            <div class="panel-head"><h3 data-i18n>Mikser</h3><button class="icon ghost sm" id="mix-mute" title="Sessize al" data-i18n-title></button></div>
+            <div class="mixer" id="mixer"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3 data-i18n>Durum</h3></div>
+            <div class="stats" id="stats"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3 data-i18n>Sıradaki</h3></div>
+            <div id="queue" class="queue">—</div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3 data-i18n>Hızlı müzik seçimi</h3></div>
             <select id="quick-music"></select>
             <div class="dim small mt6" id="music-status"></div>
-          </div>
+          </section>
         </div>
       </div>
     </section>
 
     <!-- ============================== HABER MASASI -->
     <section class="tab" id="tab-masa">
-      <div class="panel-head"><h2 class="page-title" data-i18n>Haber masası</h2><div class="dim" id="board-stats"></div></div>
-      <p class="muted" data-i18n>Akışından gelen paylaşımlar burada hikâyelere ayrılır. Aynı olayı anlatan farklı hesaplar tek hikâyede birleşir; anlatılan hikâye yeni bir gelişme olmadıkça tekrar edilmez.</p>
+      <header class="page-head"><h2 class="page-title" data-i18n>Haber masası</h2><div class="dim mono small" id="board-stats"></div></header>
+      <p class="lead" data-i18n>Akışından gelen paylaşımlar burada hikâyelere ayrılır. Aynı olayı anlatan farklı hesaplar tek hikâyede birleşir; anlatılan hikâye yeni bir gelişme olmadıkça tekrar edilmez.</p>
       <div class="board">
         <div><h3 data-i18n>Sırada bekleyen</h3><div id="board-pending" class="cards"></div></div>
         <div><h3 data-i18n>Anlatıldı</h3><div id="board-covered" class="cards"></div></div>
@@ -100,26 +115,26 @@
 
     <!-- ============================== GEÇMİŞ -->
     <section class="tab" id="tab-gecmis">
-      <div class="panel-head"><h2 class="page-title" data-i18n>Yayın geçmişi</h2>
+      <header class="page-head"><h2 class="page-title" data-i18n>Yayın geçmişi</h2>
         <div class="row"><select id="hist-range"><option value="6" data-i18n>Son 6 saat</option><option value="24" selected data-i18n>Son 24 saat</option><option value="168" data-i18n>Son 7 gün</option></select>
-        <button id="hist-export" data-i18n>⬇ Dışa aktar</button></div>
-      </div>
-      <p class="muted" data-i18n>Kaçırdığın bir şey mi var? DJ'lerin anlattığı her şey kaynak paylaşımlarıyla birlikte burada.</p>
+        <button id="hist-export"><i data-icon="download-simple" data-size="15"></i><span data-i18n>Dışa aktar</span></button></div>
+      </header>
+      <p class="lead" data-i18n>Kaçırdığın bir şey mi var? DJ'lerin anlattığı her şey kaynak paylaşımlarıyla birlikte burada.</p>
       <div id="history" class="history"></div>
     </section>
 
     <!-- ============================== AYARLAR -->
     <section class="tab" id="tab-ayarlar">
-      <div class="panel-head"><h2 class="page-title" data-i18n>Ayarlar</h2><span class="dim small" id="saved-hint" data-i18n>Değişiklikler otomatik kaydedilir</span></div>
+      <header class="page-head"><h2 class="page-title" data-i18n>Ayarlar</h2><span class="dim small" id="saved-hint" data-i18n>Değişiklikler otomatik kaydedilir</span></header>
       <div class="settings" id="settings"></div>
     </section>
 
     <!-- ============================== SİSTEM TESTİ -->
     <section class="tab" id="tab-test">
-      <div class="panel-head"><h2 class="page-title" data-i18n>Sistem testi</h2>
-        <div class="row"><button class="primary" id="run-tests" data-i18n>▶ Testleri çalıştır</button><button id="copy-report" data-i18n>📋 Raporu kopyala</button></div>
-      </div>
-      <p class="muted" data-i18n>Tarayıcında her parçanın çalıştığını doğrular: ses motoru, tarayıcı sesleri, YouTube, X toplayıcı, Gemini anahtarı ve modeller. Rapor API anahtarını içermez.</p>
+      <header class="page-head"><h2 class="page-title" data-i18n>Sistem testi</h2>
+        <div class="row"><button class="primary" id="run-tests"><i data-icon="play-fill" data-size="15"></i><span data-i18n>Testleri çalıştır</span></button><button id="copy-report"><i data-icon="copy" data-size="15"></i><span data-i18n>Raporu kopyala</span></button></div>
+      </header>
+      <p class="lead" data-i18n>Tarayıcında her parçanın çalıştığını doğrular: ses motoru, tarayıcı sesleri, YouTube, X toplayıcı, Gemini anahtarı ve modeller. Rapor API anahtarını içermez.</p>
       <div id="tests" class="tests"></div>
     </section>
 
@@ -127,26 +142,26 @@
     <section class="tab" id="tab-hosgeldin">
       <div class="welcome">
         <div class="welcome-hero">
-          <div class="mark big-mark">X</div>
-          <h1 data-i18n>XRadio'ya hoş geldin 📻</h1>
-          <p class="muted" data-i18n>X'e girip durmana gerek yok. İki yapay zekâ DJ'i akışını senin yerine dinler; müzik çalarken önemli bir şey olursa sesi kısıp sohbet eder, aynı haberi tekrar tekrar anlatıp başını ağrıtmaz.</p>
+          <div class="mark big-mark"><i data-icon="broadcast-fill" data-size="34"></i></div>
+          <h1 data-i18n>XRadio'ya hoş geldin</h1>
+          <p class="lead" data-i18n>X'e girip durmana gerek yok. İki yapay zekâ DJ'i akışını senin yerine dinler; müzik çalarken önemli bir şey olursa sesi kısıp sohbet eder, aynı haberi tekrar tekrar anlatıp başını ağrıtmaz.</p>
         </div>
         <ol class="steps">
-          <li class="lang-step"><b data-i18n>🌐 Yayın dili</b> <span class="muted" id="w-lang-note"></span>
+          <li class="lang-step"><div class="step-head"><b data-i18n>Yayın dili</b> <span class="muted" id="w-lang-note"></span></div>
             <div class="mt6" id="w-lang"></div>
             <div class="dim small mt6" data-i18n>DJ'ler bu dilde konuşur; haber başlıkları da bu dilde hazırlanır. ✦ işaretli diller Gemini anahtarı gerektirir.</div>
           </li>
-          <li><b data-i18n>X hesabın bu tarayıcıda açık olsun.</b> <span class="muted" data-i18n>Radyo, sabitlenmiş küçük bir sekmede akışını okur. Akışa bakmana gerek yok — o sekme bile seni radyoya yönlendirir.</span></li>
-          <li><b data-i18n>Adın:</b> <input id="w-name" data-i18n-ph placeholder="DJ'ler sana adınla seslensin (isteğe bağlı)"></li>
-          <li><b data-i18n>Gemini API anahtarı</b> <span class="muted" data-i18n>(gerçekçi DJ sesleri ve akıllı yorumlar için; yoksa ücretsiz yerel mod çalışır)</span>
-            <div class="row mt6"><input id="w-key" type="password" data-i18n-ph placeholder="AI Studio anahtarı (AQ.…)"><button id="w-key-test" data-i18n>Dene</button></div>
+          <li><div class="step-head"><b data-i18n>X hesabın bu tarayıcıda açık olsun.</b></div><span class="muted" data-i18n>Radyo, sabitlenmiş küçük bir sekmede akışını okur. Akışa bakmana gerek yok — o sekme bile seni radyoya yönlendirir.</span></li>
+          <li><div class="step-head"><b data-i18n>Adın</b></div><input id="w-name" data-i18n-ph placeholder="DJ'ler sana adınla seslensin (isteğe bağlı)"></li>
+          <li><div class="step-head"><b data-i18n>Gemini API anahtarı</b> <span class="muted" data-i18n>(gerçekçi DJ sesleri ve akıllı yorumlar için; yoksa ücretsiz yerel mod çalışır)</span></div>
+            <div class="row mt6"><input id="w-key" type="password" data-i18n-ph placeholder="AI Studio anahtarı (AQ.…)"><button id="w-key-test"><i data-icon="key" data-size="15"></i><span data-i18n>Dene</span></button></div>
             <div class="dim small mt6"><span data-i18n>Anahtar almak için:</span> <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> · <span data-i18n>Anahtar sadece bu tarayıcıda saklanır.</span></div>
           </li>
-          <li><b data-i18n>Müzik:</b> <select id="w-music"></select></li>
+          <li><div class="step-head"><b data-i18n>Müzik</b></div><select id="w-music"></select></li>
         </ol>
         <div class="row welcome-btns">
-          <button class="primary big" id="w-start" data-i18n>▶ Yayını başlat</button>
-          <button id="w-demo" data-i18n>🧪 Demo yayınıyla dene (X gerekmez)</button>
+          <button class="primary lg" id="w-start"><i data-icon="play-fill" data-size="16"></i><span data-i18n>Yayını başlat</span></button>
+          <button class="lg" id="w-demo"><i data-icon="flask" data-size="16"></i><span data-i18n>Demo yayınıyla dene (X gerekmez)</span></button>
         </div>
       </div>
     </section>

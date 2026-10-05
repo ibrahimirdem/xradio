@@ -2,6 +2,7 @@
 
 import { captionParts } from '../lib/expressive.js';
 import { t, getUiLang } from './i18n.js';
+import { iconSvg } from './icons.js';
 
 /**
  * Altyazı metnini DOM düğümlerine çevirir: duygu etiketleri "(güler)", araya giren tepkiler
@@ -43,6 +44,36 @@ export function h(tag, attrs = {}, ...kids) {
     else e.setAttribute(k, v === true ? '' : v);
   }
   for (const k of kids.flat()) if (k != null && k !== false) e.append(k instanceof Node ? k : String(k));
+  return e;
+}
+
+/** Tema: "system" ise işletim sisteminin tercihi, değilse açık/koyu zorlanır. */
+export function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
+  else delete root.dataset.theme;
+}
+
+/** Düğme içeriği: ikon + metin. */
+export function setButton(btn, iconName, label, { size = 16 } = {}) {
+  btn.innerHTML = '';
+  if (iconName) btn.insertAdjacentHTML('beforeend', iconSvg(iconName, { size }));
+  if (label) btn.append(h('span', {}, label));
+}
+
+/** Durum etiketi: tür ok | warn | danger | accent | '' ; isteğe bağlı ikon. */
+export function tag(text, kind = '', iconName = '') {
+  const e = h('span', { class: 'tag' + (kind ? ' ' + kind : '') });
+  if (iconName) e.insertAdjacentHTML('beforeend', iconSvg(iconName, { size: 12 }));
+  e.append(text);
+  return e;
+}
+
+/** Uyarı kutusu (ikonlu). */
+export function noticeBox(content, error = false) {
+  const e = h('div', { class: 'notice' + (error ? ' error' : '') });
+  e.insertAdjacentHTML('beforeend', iconSvg(error ? 'x-circle-fill' : 'warning-fill', { size: 16 }));
+  e.append(h('div', {}, content));
   return e;
 }
 

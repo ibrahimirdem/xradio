@@ -1,5 +1,6 @@
-import { bg, cmd, onStationEvent, getSettings, saveSettings, $, $$, h, toast, relTime, clock, cleanTitle, phaseText, connectViz, makeBars, captionNodes, kindLabel, categoryLabel } from './common.js';
+import { bg, cmd, onStationEvent, getSettings, saveSettings, $, $$, h, toast, relTime, clock, cleanTitle, phaseText, connectViz, makeBars, captionNodes, kindLabel, categoryLabel, applyTheme, setButton, tag, noticeBox } from './common.js';
 import { t, setUiLang, applyI18n, uiLocale } from './i18n.js';
+import { applyIcons, iconSvg, icon } from './icons.js';
 import { GEMINI_VOICES, MUSIC_STYLES, DEFAULT_SETTINGS, LANGUAGES, langInfo, personasFor, DEFAULT_PERSONAS, DEFAULT_PERSONAS_EN } from '../lib/config.js';
 import { YT_PRESETS, parseYouTubeUrl, embedUrl } from '../lib/youtube.js';
 import { GeminiClient, pickModels } from '../lib/gemini.js';
@@ -17,7 +18,13 @@ function showTab() {
   const valid = ['yayin', 'masa', 'gecmis', 'ayarlar', 'test', 'hosgeldin'];
   const cur = valid.includes(tab) ? tab : 'yayin';
   $$('.tab').forEach((s) => s.classList.toggle('active', s.id === 'tab-' + cur));
-  $$('#nav a').forEach((a) => a.classList.toggle('active', a.dataset.tab === cur));
+  // Etkin sekmenin ikonu dolu (fill), diğerleri normal (regular) çizilir
+  $$('#nav a').forEach((a) => {
+    const active = a.dataset.tab === cur;
+    a.classList.toggle('active', active);
+    if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    a.querySelector('.nav-ic').innerHTML = iconSvg(active ? a.dataset.ic + '-fill' : a.dataset.ic, { size: 18 });
+  });
   if (cur === 'masa') renderBoard();
   if (cur === 'gecmis') renderHistory();
   if (cur === 'ayarlar') renderSettings();
@@ -54,30 +61,45 @@ function renderHosts() {
   document.title = `${settings.stationName || 'XRadio'} ${t('Stüdyo')}`;
 }
 
+/** Var olan etiketin içeriğini (ikon + metin) ve türünü günceller. */
+function setTag(el, text, kind = '', iconName = '') {
+  el.className = 'tag' + (kind ? ' ' + kind : '') + (el.classList.contains('hidden') ? ' hidden' : '');
+  el.innerHTML = iconName ? iconSvg(iconName, { size: 12 }) : '';
+  el.append(text);
+}
+
+let lastToggle = '';
+function renderToggle(on) {
+  const want = on ? 'stop' : 'play';
+  if (want === lastToggle) return;
+  lastToggle = want;
+  const tg = $('#toggle');
+  setButton(tg, on ? 'stop-fill' : 'play-fill', on ? t('Yayını durdur') : t('Yayını başlat'));
+  tg.className = 'lg ' + (on ? 'live-stop' : 'primary');
+}
+
 function renderLive() {
   const st = state || {};
   const on = !!st.on;
   const talking = st.phase === 'talking';
-  $('#onair').className = 'onair' + (talking ? ' live' : on ? ' music' : '');
-  $('#onair-text').textContent = talking ? (st.segment?.kind === 'breaking' ? t('SON DAKİKA') : t('CANLI')) : on ? t('YAYINDA') : t('KAPALI');
+  const breaking = talking && st.segment?.kind === 'breaking';
+  $('#onair').className = 'onair' + (breaking ? ' breaking' : talking ? ' live' : on ? ' music' : '');
+  $('#onair-text').textContent = talking ? (breaking ? t('SON DAKİKA') : t('CANLI')) : on ? t('YAYINDA') : t('KAPALI');
   $('#phase').textContent = phaseText(st);
   $('#phase-sub').textContent = talking && st.segment ? `${kindLabel(st.segment.kind)}: ${st.segment.title || ''}` : on ? (st.time || '') : t('X akışını senin yerine dinleyip önemli gelişmeleri iki DJ\'in sohbetiyle anlatır.');
-  const tg = $('#toggle');
-  tg.textContent = on ? t('■ Yayını durdur') : t('▶ Yayını başlat');
-  tg.classList.toggle('primary', !on);
-  tg.classList.toggle('danger', on);
+  renderToggle(on);
 
-  $('#chip-engine').textContent = st.engine === 'gemini' ? `✦ Gemini · ${st.models?.text || ''}` : t('Yerel zekâ (API anahtarı yok)');
-  $('#chip-engine').className = 'chip ' + (st.engine === 'gemini' ? 'violet' : '');
-  $('#chip-voice').textContent = st.voiceMode === 'gemini' ? `🔊 Gemini TTS · ${st.models?.tts || ''}` : `🔊 ${t('Tarayıcı sesi')}${st.browserVoices ? ' · ' + st.browserVoices.A.replace(/Microsoft |Online |\(Natural\)| - .*$/g, '') : ''}`;
-  $('#chip-lang').textContent = `🌐 ${langInfo(settings.language).native}`;
+  setTag($('#chip-engine'), st.engine === 'gemini' ? `Gemini · ${st.models?.text || ''}` : t('Yerel zekâ (API anahtarı yok)'), st.engine === 'gemini' ? 'accent' : '', st.engine === 'gemini' ? 'brain' : 'cpu');
+  setTag($('#chip-voice'), st.voiceMode === 'gemini' ? `Gemini TTS · ${st.models?.tts || ''}` : `${t('Tarayıcı sesi')}${st.browserVoices ? ' · ' + st.browserVoices.A.replace(/Microsoft |Online |\(Natural\)| - .*$/g, '') : ''}`, '', 'waveform');
+  setTag($('#chip-lang'), langInfo(settings.language).native, '', 'globe-simple');
+  setTag($('#chip-demo'), 'Demo', 'warn', 'flask');
   $('#chip-demo').classList.toggle('hidden', !st.demo);
   const c = st.collector;
   const cx = $('#chip-x');
-  if (st.demo) { cx.textContent = t('X: demo akışı'); cx.className = 'chip amber'; }
-  else if (c?.loggedIn === false) { cx.textContent = t('X: giriş yapılmamış!'); cx.className = 'chip red'; }
-  else if (c?.lastAt) { cx.textContent = t('X ✓ son veri {when} · {n} paylaşım', { when: relTime(c.lastAt), n: c.total || 0 }); cx.className = 'chip green'; }
-  else { cx.textContent = on ? t('X: ilk veri bekleniyor…') : t('X toplayıcı: beklemede'); cx.className = 'chip'; }
+  if (st.demo) setTag(cx, t('X: demo akışı'), 'warn', 'x-logo');
+  else if (c?.loggedIn === false) setTag(cx, t('X: giriş yapılmamış!'), 'danger', 'x-logo');
+  else if (c?.lastAt) setTag(cx, t('X ✓ son veri {when} · {n} paylaşım', { when: relTime(c.lastAt), n: c.total || 0 }), 'ok', 'x-logo');
+  else setTag(cx, on ? t('X: ilk veri bekleniyor…') : t('X toplayıcı: beklemede'), '', 'x-logo');
 
   const voiceName = (id) => { const v = GEMINI_VOICES.find((x) => x.id === id); return v ? `${v.id} · ${t(v.desc)}` : id; };
   $('#voice-a').textContent = st.voiceMode === 'gemini' ? voiceName(settings.hostA.voice) : '';
@@ -90,10 +112,11 @@ function renderLive() {
 
   const notice = $('#notice');
   const lastErr = st.errors?.at(-1);
-  if (st.audioBlocked) { notice.textContent = t('Tarayıcı sesi başlatmayı engelledi. Bu sayfada "Yayını başlat"a bir kez daha tıkla.'); notice.className = 'notice'; }
-  else if (c?.loggedIn === false && !st.demo) { notice.innerHTML = ''; notice.append(t('X oturumun açık görünmüyor.') + ' ', h('a', { href: 'https://x.com/login', target: '_blank' }, t('X\'e giriş yap')), ' ' + t('ya da Ayarlar\'dan demo modunu dene.')); notice.className = 'notice error'; }
-  else if (lastErr && Date.now() - lastErr.ts < 120e3) { notice.textContent = `${t('Son uyarı')}: ${lastErr.msg}`; notice.className = 'notice'; }
-  else notice.className = 'notice hidden';
+  const showNotice = (content, error = false) => { notice.className = ''; notice.replaceChildren(noticeBox(content, error)); };
+  if (st.audioBlocked) showNotice(t('Tarayıcı sesi başlatmayı engelledi. Bu sayfada "Yayını başlat"a bir kez daha tıkla.'));
+  else if (c?.loggedIn === false && !st.demo) showNotice(h('span', {}, t('X oturumun açık görünmüyor.') + ' ', h('a', { href: 'https://x.com/login', target: '_blank' }, t('X\'e giriş yap')), ' ' + t('ya da Ayarlar\'dan demo modunu dene.')), true);
+  else if (lastErr && Date.now() - lastErr.ts < 120e3) showNotice(`${t('Son uyarı')}: ${lastErr.msg}`);
+  else notice.className = 'hidden';
 
   const s = st.stats || {};
   const u = st.usage || {};
@@ -111,13 +134,14 @@ function renderLive() {
   if (!on) q.textContent = '—';
   else {
     const items = [];
-    if (st.waitingFeed) items.push(t('📡 X akışından ilk veri bekleniyor'));
-    if (st.preparing?.length) items.push(...st.preparing.filter((k) => k !== 'triage').map((k) => `⏳ ${t('Hazırlanıyor')}: ${kindLabel(k)}`));
-    if (st.preparing?.includes('triage')) items.push(t('🗂 Yeni paylaşımlar sınıflandırılıyor'));
-    if (st.queue?.length) items.push(...st.queue.map((x) => `✅ ${t('Hazır')}: ${kindLabel(x.kind)} — ${x.title}`));
-    if (st.nextTalkAt && !talking) items.push(t('🕒 Sonraki ara: ~{m} dk', { m: Math.max(0, Math.round((st.nextTalkAt - Date.now()) / 60000)) }));
-    if (!items.length) items.push(t('Müzik çalıyor.'));
-    items.forEach((x) => q.append(h('div', {}, x)));
+    const item = (ic, text, cls = '') => { const d = h('div', { class: 'q ' + cls }); d.insertAdjacentHTML('beforeend', iconSvg(ic, { size: 15 })); d.append(h('span', {}, text)); return d; };
+    if (st.waitingFeed) items.push(item('cell-signal-medium', t('X akışından ilk veri bekleniyor')));
+    if (st.preparing?.length) items.push(...st.preparing.filter((k) => k !== 'triage').map((k) => item('hourglass-medium', `${t('Hazırlanıyor')}: ${kindLabel(k)}`)));
+    if (st.preparing?.includes('triage')) items.push(item('stack-simple', t('Yeni paylaşımlar sınıflandırılıyor')));
+    if (st.queue?.length) items.push(...st.queue.map((x) => item('check-circle-fill', `${t('Hazır')}: ${kindLabel(x.kind)} — ${x.title}`, 'ready')));
+    if (st.nextTalkAt && !talking) items.push(item('clock', t('Sonraki ara: ~{m} dk', { m: Math.max(0, Math.round((st.nextTalkAt - Date.now()) / 60000)) })));
+    if (!items.length) items.push(item('music-notes', t('Müzik çalıyor.')));
+    q.append(...items);
   }
 }
 
@@ -126,7 +150,10 @@ function stat(v, k) { return h('div', { class: 'stat' }, h('div', { class: 'v' }
 function addSegmentHeader(data) {
   const box = $('#transcript');
   box.querySelector('.empty')?.remove();
-  box.append(h('div', { class: 'seg-head' + (data.kind === 'breaking' ? ' breaking' : '') }, `${clock(Date.now())} · ${kindLabel(data.kind)}`, data.title ? ` — ${data.title}` : '', data.voice ? h('span', { class: 'chip' }, data.voice === 'gemini' ? 'Gemini' : t('tarayıcı')) : null));
+  box.append(h('div', { class: 'seg-head' + (data.kind === 'breaking' ? ' breaking' : '') },
+    h('span', {}, `${clock(data.ts || Date.now())} · ${kindLabel(data.kind)}`),
+    data.title ? h('span', { class: 'seg-title' }, data.title) : null,
+    data.voice ? tag(data.voice === 'gemini' ? 'Gemini' : t('tarayıcı'), '', 'waveform') : null));
   box.scrollTop = box.scrollHeight;
   $('#seg-title').textContent = data.title || '';
 }
@@ -136,10 +163,74 @@ function addLine(c) {
   box.querySelector('.empty')?.remove();
   const listener = c.speaker === 'A' ? settings.hostB.name : settings.hostA.name;
   box.append(h('div', { class: 'line' + (c.speaker === 'B' ? ' b' : '') },
-    h('div', { class: 'av' }, (c.name || '?')[0]),
-    h('div', { class: 'bubble' }, h('div', { class: 'who' }, c.name), ...captionNodes(c.text, listener))));
+    h('div', { class: 'who' }, c.name),
+    h('div', { class: 'said' }, ...captionNodes(c.text, listener))));
   while (box.children.length > 160) box.firstChild.remove();
   box.scrollTop = box.scrollHeight;
+}
+
+// ------------------------------------------------------------------ Mikser (canlı ses ayarları)
+// Açılır penceredeki sürgülerle aynı ayarları yazar; istasyon ayar değişikliğini anında uygular.
+const MIX = [
+  { key: 'masterVolume', icon: 'speaker-high', label: 'Ana ses', max: 1 },
+  { key: 'musicVolume', icon: 'music-notes', label: 'Müzik', max: 1 },
+  { key: 'voiceVolume', icon: 'microphone', label: 'DJ sesi', max: 1.5 },
+  { key: 'duckLevel', icon: 'waveform', label: 'Konuşurken müzik', max: 0.6 },
+];
+const pct = (v) => `${Math.round(v * 100)}%`;
+let mixTimer = null;
+let mixPending = {};
+
+function saveMix(patch) {
+  Object.assign(settings, patch);
+  mixPending = { ...mixPending, ...patch };
+  clearTimeout(mixTimer);
+  mixTimer = setTimeout(() => { const p = mixPending; mixPending = {}; saveSettings(p); }, 200);
+}
+
+function renderMixer() {
+  const box = $('#mixer');
+  box.innerHTML = '';
+  for (const m of MIX) {
+    const out = h('output', { for: 'mix-' + m.key }, pct(settings[m.key]));
+    const r = h('input', { type: 'range', id: 'mix-' + m.key, min: 0, max: m.max, step: 0.01, 'aria-label': t(m.label) });
+    r.value = settings[m.key];
+    r.addEventListener('input', () => { out.textContent = pct(+r.value); saveMix({ [m.key]: +r.value }); if (m.key === 'masterVolume') renderMute(); });
+    const label = h('label', { for: 'mix-' + m.key });
+    label.innerHTML = iconSvg(m.icon, { size: 15 });
+    label.append(h('span', {}, t(m.label)));
+    box.append(h('div', { class: 'mix-row' }, label, r, out));
+  }
+  renderMute();
+}
+
+/** Başka bir yerden (açılır pencere, Ayarlar) değişen değerleri sürgülere yansıtır; sürüklenen sürgüye dokunmaz. */
+function syncMixer() {
+  for (const m of MIX) {
+    const r = $('#mix-' + m.key);
+    if (!r || document.activeElement === r) continue;
+    r.value = settings[m.key];
+    r.nextElementSibling.textContent = pct(settings[m.key]);
+  }
+  renderMute();
+}
+
+let mutedFrom = null; // sessize almadan önceki ana ses
+function renderMute() {
+  const muted = (settings.masterVolume || 0) === 0;
+  const b = $('#mix-mute');
+  b.innerHTML = iconSvg(muted ? 'speaker-slash' : 'speaker-high', { size: 16 });
+  b.title = muted ? t('Sesi aç') : t('Sessize al');
+  b.setAttribute('aria-label', b.title);
+  b.classList.toggle('on', muted);
+}
+
+function toggleMute() {
+  const muted = (settings.masterVolume || 0) === 0;
+  const v = muted ? (mutedFrom > 0 ? mutedFrom : 0.9) : 0;
+  if (!muted) mutedFrom = settings.masterVolume;
+  saveMix({ masterVolume: v });
+  syncMixer();
 }
 
 function setSpeaking(sp) {
@@ -155,7 +246,7 @@ async function refresh() {
 async function seedTranscript() {
   const logs = await logList({ since: Date.now() - 3 * 3600e3, limit: 3 }).catch(() => []);
   for (const l of logs.reverse()) {
-    addSegmentHeader({ kind: l.kind, title: l.title, voice: l.voice });
+    addSegmentHeader({ kind: l.kind, title: l.title, voice: l.voice, ts: l.ts });
     for (const ln of l.lines) addLine({ speaker: ln.speaker, name: ln.speaker === 'A' ? l.hosts?.A : l.hosts?.B, text: ln.text });
   }
 }
@@ -206,24 +297,29 @@ async function renderBoard() {
 }
 
 function storyCard(s, low = false) {
-  const imp = h('span', { class: 'imp', title: t('Önem {n}/10', { n: s.importance }) }, ...Array.from({ length: 10 }, (_, i) => h('i', { class: i < s.importance ? 'on' : '' })));
-  return h('div', { class: 'card' + (s.breaking ? ' breaking' : ''), style: low ? { opacity: 0.55 } : null },
-    h('div', { class: 'top' },
-      s.breaking ? h('span', { class: 'chip red' }, t('SON DAKİKA')) : null,
-      h('span', { class: 'chip' }, categoryLabel(s.category)),
-      s.tone === 'serious' ? h('span', { class: 'chip' }, t('ciddi')) : null,
-      s.development ? h('span', { class: 'chip amber' }, t('yeni gelişme')) : null,
-      s.reserved ? h('span', { class: 'chip violet' }, t('hazırlanıyor')) : null,
-      s.authors > 1 ? h('span', { class: 'chip' }, t('{n} hesap', { n: s.authors })) : null,
+  const imp = h('span', { class: 'imp', title: t('Önem {n}/10', { n: s.importance }), 'aria-label': t('Önem {n}/10', { n: s.importance }) }, ...Array.from({ length: 10 }, (_, i) => h('i', { class: i < s.importance ? 'on' : '' })));
+  const mute = h('button', { class: 'sm ghost', onclick: async () => { await cmd('muteStory', { id: s.id }); toast(t('Bu konu susturuldu')); renderBoard(); } });
+  setButton(mute, 'speaker-slash', t('Bu konuyu sustur'), { size: 14 });
+  return h('article', { class: 'card' + (s.breaking ? ' breaking' : '') + (low ? ' low' : '') },
+    h('div', { class: 'meta' },
+      s.breaking ? tag(t('SON DAKİKA'), 'danger', 'lightning-fill') : null,
+      tag(categoryLabel(s.category)),
+      s.tone === 'serious' ? tag(t('ciddi')) : null,
+      s.development ? tag(t('yeni gelişme'), 'warn') : null,
+      s.reserved ? tag(t('hazırlanıyor'), 'accent') : null,
+      s.authors > 1 ? tag(t('{n} hesap', { n: s.authors }), '', 'users-three') : null,
       imp,
-      h('span', { class: 'dim small' }, s.coveredAt ? t('anlatıldı {when}', { when: relTime(s.coveredAt) }) : relTime(s.lastUpdate)),
-      low ? h('span', { class: 'dim small' }, t('(önem eşiğinin altında)')) : null),
+      h('span', { class: 'when' }, s.coveredAt ? t('anlatıldı {when}', { when: relTime(s.coveredAt) }) : relTime(s.lastUpdate))),
     h('div', { class: 'hl' }, s.headline),
     s.summary ? h('div', { class: 'sum' }, s.summary) : null,
+    low ? h('div', { class: 'dim small mt6' }, t('(önem eşiğinin altında)')) : null,
     h('details', {}, h('summary', {}, t('Kaynak paylaşımlar ({n})', { n: s.tweets.length })),
-      ...s.tweets.map((tw) => h('div', { class: 'tw' }, h('div', { class: 'by' }, `${tw.name || ''} @${tw.handle || ''} · ${relTime(tw.createdAt)}`), tw.text, ' ', h('a', { href: tw.url, target: '_blank' }, t('X\'te aç ↗'))))),
-    h('div', { class: 'actions' },
-      h('button', { onclick: async () => { await cmd('muteStory', { id: s.id }); toast(t('Bu konu susturuldu')); renderBoard(); } }, t('🔇 Bu konuyu sustur'))));
+      ...s.tweets.map((tw) => {
+        const open = h('a', { href: tw.url, target: '_blank' }, t('X\'te aç'));
+        open.insertAdjacentHTML('beforeend', iconSvg('arrow-square-out', { size: 12 }));
+        return h('div', { class: 'tw' }, h('div', { class: 'by' }, `${tw.name || ''} @${tw.handle || ''} · ${relTime(tw.createdAt)}`), tw.text, ' ', open);
+      })),
+    h('div', { class: 'actions' }, mute));
 }
 
 // ------------------------------------------------------------------ Geçmiş
@@ -237,11 +333,16 @@ async function renderHistory() {
   for (const l of logs) {
     const d = new Date(l.ts).toLocaleDateString(uiLocale(), { weekday: 'long', day: 'numeric', month: 'long' });
     if (d !== day) { day = d; box.append(h('h3', {}, d)); }
-    const srcs = (l.stories || []).flatMap((s) => (s.tweets || []).slice(0, 2).map((tw) => h('a', { href: tw.url, target: '_blank', title: tw.text }, `@${tw.handle || '?'} ↗`)));
+    const srcs = (l.stories || []).flatMap((s) => (s.tweets || []).slice(0, 2).map((tw) => {
+      const a = h('a', { href: tw.url, target: '_blank', title: tw.text }, `@${tw.handle || '?'}`);
+      a.insertAdjacentHTML('beforeend', iconSvg('arrow-square-out', { size: 11 }));
+      return a;
+    }));
     box.append(h('div', { class: 'hist' },
-      h('div', { class: 'hh' }, h('span', { class: 'time' }, clock(l.ts)), h('span', { class: 'chip' + (l.kind === 'breaking' ? ' red' : '') }, kindLabel(l.kind)), h('span', { class: 'title' }, l.title),
-        h('span', { class: 'dim small' }, `${l.writer === 'gemini' ? 'Gemini' : t('yerel')} · ${l.voice === 'gemini' ? t('Gemini sesi') : t('tarayıcı sesi')}`)),
-      (l.stories || []).length ? h('div', { class: 'muted small mt6' }, (l.stories || []).map((s) => '• ' + s.headline).join('   ')) : null,
+      h('span', { class: 'time' }, clock(l.ts)),
+      h('div', { class: 'hh' }, tag(kindLabel(l.kind), l.kind === 'breaking' ? 'danger' : ''), h('span', { class: 'title' }, l.title),
+        h('span', { class: 'via' }, `${l.writer === 'gemini' ? 'Gemini' : t('yerel')} · ${l.voice === 'gemini' ? t('Gemini sesi') : t('tarayıcı sesi')}`)),
+      (l.stories || []).length ? h('div', { class: 'heads' }, (l.stories || []).map((s) => s.headline).join(' · ')) : null,
       srcs.length ? h('div', { class: 'src' }, ...srcs) : null,
       h('details', {}, h('summary', {}, t('Transkript')),
         ...l.lines.map((ln) => h('div', { class: 'tl' + (ln.speaker === 'B' ? ' b' : '') }, h('b', {}, (ln.speaker === 'A' ? l.hosts?.A : l.hosts?.B) + ': '), ...captionNodes(ln.text, ln.speaker === 'A' ? l.hosts?.B : l.hosts?.A))))));
@@ -267,7 +368,7 @@ async function saveAndApply(patch) {
       const p = pending; pending = {};
       const r = await saveSettings(p);
       if (r?.settings) settings = r.settings;
-      $('#saved-hint').textContent = `${t('Kaydedildi ✓')} ${clock(Date.now())}`;
+      $('#saved-hint').textContent = `${t('Kaydedildi')} · ${clock(Date.now())}`;
       renderHosts();
       resolve(r);
     }, 350);
@@ -321,8 +422,10 @@ function hostCard(which) {
   const persona = h('textarea', {}, host.persona);
   const save = () => saveAndApply({ [key]: { ...settings[key], name: name.value.trim() || (which === 'A' ? 'Defne' : 'Kaan'), voice: voice.value, persona: persona.value.trim() || personasFor(settings.language)[which] } });
   name.addEventListener('change', save); voice.addEventListener('change', save); persona.addEventListener('change', save);
-  const preview = h('button', { onclick: () => previewVoice(which, preview) }, t('▶ Sesi dinle'));
-  return h('div', { class: 'host-card' },
+  const preview = h('button', { onclick: () => previewVoice(which, preview) });
+  setButton(preview, 'play-fill', t('Sesi dinle'), { size: 14 });
+  return h('div', { class: 'host-card' + (which === 'B' ? ' b' : '') },
+    h('div', { class: 'host-title' }, h('span', { class: 'swatch' }), host.name),
     h('div', { class: 'row' }, field(which === 'A' ? t('Kadın DJ adı') : t('Erkek DJ adı'), name), field(t('Gemini sesi'), voice), preview),
     field(t('Kişilik'), persona, t('Yazar bu tarifi kullanır. Mizah, merak alanları, konuşma tarzı…')));
 }
@@ -344,7 +447,6 @@ async function previewVoice(which, btn) {
   const host = which === 'A' ? settings.hostA : settings.hostB;
   const line = previewLine(which, host);
   btn.disabled = true;
-  const old = btn.textContent;
   btn.innerHTML = `<span class="spinner"></span> ${t('Hazırlanıyor')}`;
   try {
     if (settings.apiKey) {
@@ -366,7 +468,7 @@ async function previewVoice(which, btn) {
   } catch (e) {
     toast(`${t('Ses denemesi başarısız')}: ${e.message}`, 5000);
   } finally {
-    btn.disabled = false; btn.textContent = old;
+    btn.disabled = false; setButton(btn, 'play-fill', t('Sesi dinle'), { size: 14 });
   }
 }
 
@@ -386,6 +488,20 @@ async function testKey(key, out) {
   }
 }
 
+function dangerZone() {
+  const clear = h('button', { class: 'danger', onclick: async () => { if (confirm(t('Toplanan paylaşımlar, hikâye hafızası ve yayın geçmişi silinsin mi?'))) { await cmd('resetMemory'); toast(t('Hafıza temizlendi')); refresh(); } } });
+  setButton(clear, 'trash', t('Hafızayı temizle'), { size: 15 });
+  const reset = h('button', { onclick: () => { if (confirm(t('Tüm ayarlar varsayılana dönsün mü? (API anahtarı ve dil korunur)'))) saveAndApply({ ...DEFAULT_SETTINGS, apiKey: settings.apiKey, language: settings.language, languageConfirmed: true, theme: settings.theme }).then(renderSettings); } });
+  setButton(reset, 'arrow-counter-clockwise', t('Varsayılanlar'), { size: 15 });
+  return h('div', { class: 'danger-zone' }, clear, reset);
+}
+
+function groupHead(iconName, title) {
+  const box = h('div', { class: 'ic-box' });
+  box.innerHTML = iconSvg(iconName, { size: 17 });
+  return h('div', { class: 'sgroup-head' }, box, h('h2', {}, title));
+}
+
 function renderSettings() {
   const root = $('#settings');
   root.innerHTML = '';
@@ -394,19 +510,29 @@ function renderSettings() {
   // Dil
   const L = langInfo(S.language);
   root.append(h('div', { class: 'panel sgroup' },
-    h('h2', {}, t('🌐 Dil')),
+    groupHead('globe-simple', t('Dil')),
     h('p', {}, t('DJ\'lerin konuştuğu dil, haber başlıkları ve arayüz. ✦ işaretli diller Gemini anahtarı gerektirir (yerel mod Türkçe ve İngilizce destekler).')),
     field(t('Yayın dili'), languageSelect(changeLanguage), L.local ? null : t('Arayüz bu dilde İngilizce görünür; DJ\'ler {lang} konuşur.', { lang: L.native })),
+  ));
+
+  // Görünüm
+  root.append(h('div', { class: 'panel sgroup' },
+    groupHead('circle-half', t('Görünüm')),
+    h('p', {}, t('Arayüzün açık ya da koyu görünümü.')),
+    field(t('Tema'), select('theme', [['system', t('Sistemle aynı')], ['light', t('Açık')], ['dark', t('Koyu')]], (v) => applyTheme(v))),
   ));
 
   // Yapay zekâ
   const keyIn = h('input', { type: 'password', value: S.apiKey, placeholder: t('AI Studio anahtarı (AQ.…)'), autocomplete: 'off' });
   const keyOut = h('div', { class: 'help', style: { whiteSpace: 'pre-wrap' } });
   keyIn.addEventListener('change', () => saveAndApply({ apiKey: keyIn.value.trim() }));
-  const showBtn = h('button', { type: 'button', onclick: () => { keyIn.type = keyIn.type === 'password' ? 'text' : 'password'; } }, '👁');
-  const testBtn = h('button', { type: 'button', onclick: () => testKey(keyIn.value.trim(), keyOut) }, t('Anahtarı dene'));
+  const showBtn = h('button', { type: 'button', class: 'icon', title: t('Anahtarı göster / gizle'), 'aria-label': t('Anahtarı göster / gizle') });
+  showBtn.innerHTML = iconSvg('eye', { size: 16 });
+  showBtn.addEventListener('click', () => { const hidden = keyIn.type === 'password'; keyIn.type = hidden ? 'text' : 'password'; showBtn.innerHTML = iconSvg(hidden ? 'eye-slash' : 'eye', { size: 16 }); });
+  const testBtn = h('button', { type: 'button', onclick: () => testKey(keyIn.value.trim(), keyOut) });
+  setButton(testBtn, 'key', t('Anahtarı dene'), { size: 15 });
   root.append(h('div', { class: 'panel sgroup' },
-    h('h2', {}, t('✦ Yapay zekâ (Gemini)')),
+    groupHead('brain', t('Yapay zekâ (Gemini)')),
     h('p', {}, t('Gerçekçi iki kişilik DJ sohbeti Gemini\'nin çok konuşmacılı ses modeliyle seslendirilir. Anahtar yoksa ücretsiz yerel mod (şablon senaryo + tarayıcının sesleri) çalışır.')),
     field(t('API anahtarı'), h('div', { class: 'row' }, keyIn, showBtn, testBtn), h('span', {}, t('Anahtar al') + ': ', h('a', { href: 'https://aistudio.google.com/apikey', target: '_blank' }, 'aistudio.google.com/apikey'), ' · ' + t('Sadece bu tarayıcıda (chrome.storage.local) saklanır.'))),
     keyOut,
@@ -419,7 +545,7 @@ function renderSettings() {
 
   // Sunucular
   root.append(h('div', { class: 'panel sgroup' },
-    h('h2', {}, t('🎙 Sunucular ve program')),
+    groupHead('users-three', t('Sunucular ve program')),
     h('p', {}, t('İki DJ\'in adı, sesi ve kişiliği. "Sesi dinle" ile anında dene.')),
     hostCard('A'), hostCard('B'),
     field(t('Radyo adı'), text('stationName', 'XRadio')),
@@ -444,7 +570,7 @@ function renderSettings() {
     saveAndApply({ musicSource: 'youtube', youtubeUrl: urlIn.value.trim() });
   });
   root.append(h('div', { class: 'panel sgroup' },
-    h('h2', {}, t('🎵 Müzik')),
+    groupHead('music-notes', t('Müzik')),
     h('p', {}, t('Arka planda YouTube canlı yayını ya da oynatma listesi çalar; DJ\'ler konuşurken ses otomatik kısılır.')),
     field(t('Müzik'), ms),
     field(t('Kendi YouTube bağlantın'), urlIn, t('Canlı yayın, video, oynatma listesi veya YouTube Music bağlantısı yapıştır.')),
@@ -461,7 +587,7 @@ function renderSettings() {
 
   // X
   root.append(h('div', { class: 'panel sgroup' },
-    h('h2', {}, t('𝕏 Akış toplayıcı')),
+    groupHead('x-logo', t('Akış toplayıcı')),
     h('p', {}, t('Radyo, X oturumunun açık olduğu bu tarayıcıda küçük bir sabitlenmiş sekmede ana akışını okur. Hiçbir şey paylaşmaz, beğenmez, yazmaz.')),
     field(t('Hangi akış?'), select('feed', [['following', t('Takip edilenler (kronolojik)')], ['foryou', t('Sana özel')]])),
     field(t('Yenileme aralığı'), select('refreshMinutes', [2, 3, 4, 6, 10].map((m) => [m, t('{n} dakika', { n: m })]))),
@@ -472,7 +598,7 @@ function renderSettings() {
 
   // Filtreler
   root.append(h('div', { class: 'panel sgroup' },
-    h('h2', {}, t('🧹 Filtreler ve öncelikler')),
+    groupHead('funnel', t('Filtreler ve öncelikler')),
     h('p', {}, t('Neyin haber olacağına ve neyin yayını keseceğine sen karar ver.')),
     field(t('Son dakika eşiği (yayını kesme)'), range('breakingThreshold', 5, 10, 1, (v) => `${v}/10`)),
     field(t('Anlatılacak en düşük önem'), range('minImportance', 1, 8, 1, (v) => `${v}/10`)),
@@ -482,23 +608,26 @@ function renderSettings() {
   ));
 
   root.append(h('div', { class: 'panel sgroup' },
-    h('h2', {}, t('🛡 Odak kalkanı ve diğerleri')),
+    groupHead('shield-check', t('Odak kalkanı ve diğerleri')),
     h('p', {}, t('X\'i kendin açtığında akış yerine radyonun durumunu gösteren nazik bir ekran çıkar. Belirli bir paylaşım bağlantısı açarsan araya girmez.')),
     inlineField(t('Odak kalkanını aç'), check('focusShield')),
     field(t('"Bakmam lazım" erteleme süresi'), select('shieldSnoozeMinutes', [2, 5, 10, 15].map((m) => [m, t('{n} dakika', { n: m })]))),
     inlineField(t('Son dakikada masaüstü bildirimi'), check('notifyBreaking')),
     inlineField(t('Tarayıcı açılınca radyoyu başlat'), check('autoStartOnBrowserOpen')),
-    h('div', { class: 'row mt6' },
-      h('button', { class: 'danger', onclick: async () => { if (confirm(t('Toplanan paylaşımlar, hikâye hafızası ve yayın geçmişi silinsin mi?'))) { await cmd('resetMemory'); toast(t('Hafıza temizlendi')); refresh(); } } }, t('🗑 Hafızayı temizle')),
-      h('button', { onclick: () => { if (confirm(t('Tüm ayarlar varsayılana dönsün mü? (API anahtarı ve dil korunur)'))) saveAndApply({ ...DEFAULT_SETTINGS, apiKey: settings.apiKey, language: settings.language, languageConfirmed: true }).then(renderSettings); } }, t('↺ Varsayılanlar'))),
+    dangerZone(),
   ));
 }
 
 // ------------------------------------------------------------------ Sistem testi
 let report = [];
-function testRow(icon, name, det) {
-  report.push({ ok: icon, name, det });
-  $('#tests').append(h('div', { class: 'test' }, h('div', { class: 'ic' }, icon), h('div', {}, h('div', { class: 'name' }, name), det ? h('div', { class: 'det' }, det) : null)));
+const TEST_ICON = { ok: 'check-circle-fill', warn: 'warning-fill', fail: 'x-circle-fill', info: 'info-fill' };
+const TEST_MARK = { ok: '✓', warn: '!', fail: '✗', info: 'i' };
+/** Test satırı. status: ok | warn | fail | info */
+function testRow(status, name, det) {
+  report.push({ status, name, det });
+  const st = h('div', { class: 'st ' + status });
+  st.innerHTML = iconSvg(TEST_ICON[status] || TEST_ICON.info, { size: 18, label: status });
+  $('#tests').append(h('div', { class: 'test' }, st, h('div', {}, h('div', { class: 'name' }, name), det ? h('div', { class: 'det' }, det) : null)));
 }
 
 async function runTests() {
@@ -509,34 +638,34 @@ async function runTests() {
   try {
     const brands = navigator.userAgentData?.brands?.map((b) => `${b.brand} ${b.version}`).join(', ') || navigator.userAgent;
     const isEdge = /Edge/i.test(brands) || /Edg\//.test(navigator.userAgent);
-    testRow(isEdge ? '✅' : 'ℹ️', t('Tarayıcı'), `${brands}\n${t('Eklenti sürümü')} ${chrome.runtime.getManifest().version_name || chrome.runtime.getManifest().version} ·${t('Yayın dili')}: ${langInfo(settings.language).native}`);
+    testRow(isEdge ? 'ok' : 'info', t('Tarayıcı'), `${brands}\n${t('Eklenti sürümü')} ${chrome.runtime.getManifest().version_name || chrome.runtime.getManifest().version} ·${t('Yayın dili')}: ${langInfo(settings.language).native}`);
 
     const perms = await chrome.permissions.contains({ origins: ['https://x.com/*', 'https://www.youtube.com/*', 'https://generativelanguage.googleapis.com/*'] });
-    testRow(perms ? '✅' : '❌', t('Site izinleri (X, YouTube, Gemini)'), perms ? t('Tamam') : t('Eksik — eklentiyi yeniden yükle'));
+    testRow(perms ? 'ok' : 'fail', t('Site izinleri (X, YouTube, Gemini)'), perms ? t('Tamam') : t('Eksik — eklentiyi yeniden yükle'));
 
     const diag = await cmd('diagnostics');
-    if (!diag || diag.error) testRow('❌', t('Ses motoru (arka plan belgesi)'), diag?.error || t('Yanıt yok'));
+    if (!diag || diag.error) testRow('fail', t('Ses motoru (arka plan belgesi)'), diag?.error || t('Yanıt yok'));
     else {
-      testRow(['running', 'suspended', 'yok'].includes(diag.audioContext) ? '✅' : '⚠️', t('Ses motoru'), `AudioContext: ${diag.audioContext}${diag.sampleRate ? ' · ' + diag.sampleRate + ' Hz' : ''}`);
+      testRow(['running', 'suspended', 'yok'].includes(diag.audioContext) ? 'ok' : 'warn', t('Ses motoru'), `AudioContext: ${diag.audioContext}${diag.sampleRate ? ' · ' + diag.sampleRate + ' Hz' : ''}`);
       const bv = diag.browserVoices || {};
       const langName = langInfo(settings.language).native;
-      testRow(bv.native ? '✅' : '⚠️', t('Tarayıcının {lang} sesleri (yedek mod)', { lang: langName }), bv.native
+      testRow(bv.native ? 'ok' : 'warn', t('Tarayıcının {lang} sesleri (yedek mod)', { lang: langName }), bv.native
         ? `${t('Kadın')}: ${bv.A}\n${t('Erkek')}: ${bv.B}\n${t('Toplam ses')}: ${bv.count}`
         : t('{lang} ses bulunamadı ({n} ses). Windows ayarlarından konuşma paketi ekleyebilirsin; Edge\'in "Online (Natural)" sesleri internetle çalışır.', { lang: langName, n: bv.count || 0 }));
       const m = diag.music || {};
-      if (m.status?.state === 'playing' || m.nowPlaying) testRow('✅', t('Müzik'), `${m.source} · ${cleanTitle(m.nowPlaying?.title || '')} ${m.nowPlaying?.mode ? '(' + m.nowPlaying.mode + ')' : ''}\n${m.status?.text || ''}`);
-      else testRow('ℹ️', t('Müzik'), `${t('Kaynak')}: ${m.source}. ${t('Radyo çalarken bu testi tekrar çalıştırırsan YouTube oynatıcısının durumu da görünür.')}${m.status?.text ? `\n${t('Durum')}: ${m.status.text}` : ''}`);
-      if (diag.errors?.length) testRow('⚠️', t('Son hatalar'), diag.errors.map((e) => `${clock(e.ts)} ${e.msg}`).join('\n'));
+      if (m.status?.state === 'playing' || m.nowPlaying) testRow('ok', t('Müzik'), `${m.source} · ${cleanTitle(m.nowPlaying?.title || '')} ${m.nowPlaying?.mode ? '(' + m.nowPlaying.mode + ')' : ''}\n${m.status?.text || ''}`);
+      else testRow('info', t('Müzik'), `${t('Kaynak')}: ${m.source}. ${t('Radyo çalarken bu testi tekrar çalıştırırsan YouTube oynatıcısının durumu da görünür.')}${m.status?.text ? `\n${t('Durum')}: ${m.status.text}` : ''}`);
+      if (diag.errors?.length) testRow('warn', t('Son hatalar'), diag.errors.map((e) => `${clock(e.ts)} ${e.msg}`).join('\n'));
     }
 
     const st = await bg('getState');
     const c = st?.collector;
-    if (settings.demoMode) testRow('ℹ️', t('X toplayıcı'), t('Demo modu açık — gerçek akış okunmuyor.'));
-    else if (!c) testRow('ℹ️', t('X toplayıcı'), t('Henüz veri yok. Radyoyu başlat; sabitlenmiş X sekmesi açılır ve 1-2 dakika içinde veri gelir.'));
-    else if (c.loggedIn === false) testRow('❌', t('X toplayıcı'), t('X oturumu açık değil. x.com\'a giriş yapıp radyoyu yeniden başlat.'));
-    else testRow('✅', t('X toplayıcı'), `${t('Son veri')}: ${relTime(c.lastAt)} (${c.lastSource === 'json' ? t('uygulama verisi') : c.lastSource === 'dom' ? t('sayfa yapısı') : c.lastSource})\n${t('Son parti')}: ${c.lastBatch || 0} · ${t('Toplam yeni')}: ${c.total || 0}`);
+    if (settings.demoMode) testRow('info', t('X toplayıcı'), t('Demo modu açık — gerçek akış okunmuyor.'));
+    else if (!c) testRow('info', t('X toplayıcı'), t('Henüz veri yok. Radyoyu başlat; sabitlenmiş X sekmesi açılır ve 1-2 dakika içinde veri gelir.'));
+    else if (c.loggedIn === false) testRow('fail', t('X toplayıcı'), t('X oturumu açık değil. x.com\'a giriş yapıp radyoyu yeniden başlat.'));
+    else testRow('ok', t('X toplayıcı'), `${t('Son veri')}: ${relTime(c.lastAt)} (${c.lastSource === 'json' ? t('uygulama verisi') : c.lastSource === 'dom' ? t('sayfa yapısı') : c.lastSource})\n${t('Son parti')}: ${c.lastBatch || 0} · ${t('Toplam yeni')}: ${c.total || 0}`);
 
-    if (!settings.apiKey) testRow('ℹ️', 'Gemini', t('API anahtarı girilmemiş — yerel mod kullanılıyor.'));
+    if (!settings.apiKey) testRow('info', 'Gemini', t('API anahtarı girilmemiş — yerel mod kullanılıyor.'));
     else {
       const client = new GeminiClient({ apiKey: settings.apiKey, base: settings.apiBase });
       let picked = null;
@@ -544,16 +673,16 @@ async function runTests() {
         const t0 = performance.now();
         const list = await client.listModels();
         picked = pickModels(list);
-        testRow('✅', t('Gemini anahtarı ve modeller'), `${list.length} model · ${Math.round(performance.now() - t0)} ms\n${t('Metin')}: ${picked.text} · ${t('Triyaj')}: ${picked.triage} · ${t('Ses')}: ${picked.tts}`);
-      } catch (e) { testRow('❌', t('Gemini anahtarı'), e.message); }
+        testRow('ok', t('Gemini anahtarı ve modeller'), `${list.length} model · ${Math.round(performance.now() - t0)} ms\n${t('Metin')}: ${picked.text} · ${t('Triyaj')}: ${picked.triage} · ${t('Ses')}: ${picked.tts}`);
+      } catch (e) { testRow('fail', t('Gemini anahtarı'), e.message); }
       if (picked) {
         const L = langInfo(settings.language);
         const textModel = settings.autoModels ? picked.text || settings.textModel : settings.textModel;
         try {
           const t0 = performance.now();
           const j = await client.generateJson({ model: textModel, system: `Answer briefly in ${L.english}.`, prompt: `Greet the listener in one sentence like a radio DJ, in ${L.english}. JSON: {"greeting": "..."}`, schema: { type: 'object', properties: { greeting: { type: 'string' } }, required: ['greeting'] }, temperature: 0.8, thinking: 'minimal', maxTokens: 300 });
-          testRow('✅', t('Gemini metin üretimi'), `${textModel} · ${Math.round(performance.now() - t0)} ms (${client.mode.get(textModel)} API)\n"${j.greeting}"`);
-        } catch (e) { testRow('❌', t('Gemini metin üretimi'), `${textModel}: ${e.message}`); }
+          testRow('ok', t('Gemini metin üretimi'), `${textModel} · ${Math.round(performance.now() - t0)} ms (${client.mode.get(textModel)} API)\n"${j.greeting}"`);
+        } catch (e) { testRow('fail', t('Gemini metin üretimi'), `${textModel}: ${e.message}`); }
         const ttsModel = settings.autoModels ? picked.tts || settings.ttsModel : settings.ttsModel;
         try {
           const t0 = performance.now();
@@ -562,23 +691,23 @@ async function runTests() {
           const ctx = new AudioContext();
           const buf = await ctx.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
           const src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination); src.start();
-          testRow('✅', t('Gemini çok konuşmacılı ses'), t('{model} · {ms} ms · {sec} sn ses ({api} API) — şu an çalıyor', { model: ttsModel, ms: Math.round(performance.now() - t0), sec: buf.duration.toFixed(1), api: client.mode.get('tts:' + ttsModel) }));
-        } catch (e) { testRow('❌', t('Gemini ses (TTS)'), `${ttsModel}: ${e.message}`); }
+          testRow('ok', t('Gemini çok konuşmacılı ses'), t('{model} · {ms} ms · {sec} sn ses ({api} API) — şu an çalıyor', { model: ttsModel, ms: Math.round(performance.now() - t0), sec: buf.duration.toFixed(1), api: client.mode.get('tts:' + ttsModel) }));
+        } catch (e) { testRow('fail', t('Gemini ses (TTS)'), `${ttsModel}: ${e.message}`); }
       }
     }
 
     const logs = await logList({ since: Date.now() - 24 * 3600e3, limit: 1000 }).catch(() => []);
     const inbox = await inboxCount().catch(() => '?');
-    testRow('✅', t('Veritabanı'), t('Son 24 saatte {a} yayın bölümü · gelen kutusunda {b} paylaşım', { a: logs.length, b: inbox }));
+    testRow('ok', t('Veritabanı'), t('Son 24 saatte {a} yayın bölümü · gelen kutusunda {b} paylaşım', { a: logs.length, b: inbox }));
   } catch (e) {
-    testRow('❌', t('Test çalıştırılamadı'), e.message);
+    testRow('fail', t('Test çalıştırılamadı'), e.message);
   } finally {
     btn.disabled = false;
   }
 }
 
 function copyReport() {
-  const lines = report.map((r) => `${r.ok} ${r.name}${r.det ? '\n   ' + r.det.replace(/\n/g, '\n   ') : ''}`);
+  const lines = report.map((r) => `[${TEST_MARK[r.status] || '?'}] ${r.name}${r.det ? '\n    ' + r.det.replace(/\n/g, '\n    ') : ''}`);
   navigator.clipboard.writeText(`${t('XRadio sistem testi')} — ${new Date().toLocaleString(uiLocale())}\n\n${lines.join('\n')}`).then(() => toast(t('Rapor panoya kopyalandı')));
 }
 
@@ -614,6 +743,7 @@ async function start() {
   const tg = $('#toggle');
   tg.disabled = true;
   tg.innerHTML = `<span class="spinner"></span> ${t('Başlıyor')}`;
+  lastToggle = '';
   const r = await cmd('start');
   tg.disabled = false;
   if (r?.error) toast(r.error, 4000);
@@ -623,8 +753,10 @@ async function start() {
 // ------------------------------------------------------------------ Başlat
 async function init() {
   settings = await getSettings();
+  applyTheme(settings.theme);
   setUiLang(settings.language);
   applyI18n(document);
+  applyIcons(document);
   const mf = chrome.runtime.getManifest();
   $('#version').textContent = `XRadio v${mf.version_name || mf.version}`;
   // Dil hiç onaylanmadıysa Başlangıç ekranını (dil seçimiyle) bir kez kendiliğinden göster;
@@ -636,6 +768,8 @@ async function init() {
   }
   renderHosts();
   fillMusicSelect($('#quick-music'), musicValue());
+  renderMixer();
+  $('#mix-mute').addEventListener('click', toggleMute);
   $('#quick-music').addEventListener('change', () => applyMusicValue($('#quick-music').value));
   await refresh();
   seedTranscript();
@@ -675,11 +809,11 @@ async function init() {
     const prevLang = settings.language;
     settings = { ...settings, ...ch.settings.newValue };
     if (ch.settings.newValue?.language && ch.settings.newValue.language !== prevLang) location.reload();
-    else renderHosts();
+    else { renderHosts(); applyTheme(settings.theme); syncMixer(); }
   });
   connectViz((d) => { setBars(d.bands); if (d.talking) setSpeaking(d.speaker); else setSpeaking(null); });
   setInterval(refresh, 5000);
-  setInterval(() => { $('#clock').textContent = new Date().toLocaleString(uiLocale(), { weekday: 'long', hour: '2-digit', minute: '2-digit' }); }, 1000);
+  setInterval(() => { $('#clock').textContent = new Date().toLocaleString(uiLocale(), { weekday: 'short', hour: '2-digit', minute: '2-digit' }); }, 1000);
 }
 
 init();

@@ -30,6 +30,10 @@ export async function collectKeys() {
   for (const block of csrc.matchAll(/export const (KIND_LABEL|CATEGORY) = \{([\s\S]*?)\};/g)) {
     for (const m of block[2].matchAll(/:\s*'([^']+)'/g)) keys.add(m[1]);
   }
+  // Stüdyo mikserinin etiketleri t(m.label) ile çevrilir
+  const ssrc = fs.readFileSync(path.join(root, 'ui', 'studio.js'), 'utf8');
+  const mix = ssrc.match(/const MIX = \[([\s\S]*?)\];/);
+  if (mix) for (const m of mix[1].matchAll(/label: '([^']+)'/g)) keys.add(m[1]);
   for (const v of cfg.GEMINI_VOICES) keys.add(v.desc);
   for (const m of cfg.MUSIC_STYLES) keys.add(m.label);
   for (const p of yt.YT_PRESETS) keys.add(p.group);

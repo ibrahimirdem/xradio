@@ -8,12 +8,13 @@
     "test": "node --test \"tests/unit/*.test.js\"",
     "test:e2e": "node tests/e2e/run-e2e.mjs",
     "mock": "node tests/mock/gemini-mock.mjs",
-    "icons": "python tools/make_icons.py",
+    "icons": "node tools/build-icons.mjs",
     "pack": "node tools/pack.mjs",
     "test:live": "node tests/live/gemini-live.mjs",
     "screenshots": "node tools/screenshots.mjs"
   },
   "devDependencies": {
+    "@phosphor-icons/core": "^2.1.1",
     "playwright": "^1.51.1"
   },
   "license": "MIT"

@@ -168,74 +168,99 @@
     return e;
   }
 
+  // Yerel append() null'u "null" yazısına çevirir; boş öğeleri atla
+  const put = (parent, ...kids) => parent.append(...kids.filter((k) => k != null && k !== false));
+
   function showShield(kind, info = {}) {
     hideShield();
     shieldHost = document.createElement('xradio-shield');
     shieldHost.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:block;';
     const root = shieldHost.attachShadow({ mode: 'closed' });
     const style = document.createElement('style');
+    // Eklentinin "yayın konsolu" tasarımıyla aynı palet (sıcak koyu yüzey, tek vurgu: sinyal turuncusu)
     style.textContent = `
       :host{all:initial}
-      .wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;
-        background:radial-gradient(1200px 600px at 20% 10%,#3b1d6e 0%,transparent 60%),radial-gradient(900px 500px at 90% 90%,#7a1d3a 0%,transparent 55%),#0b0a12;
-        color:#f4f1ff;font:15px/1.5 "Segoe UI Variable","Segoe UI",system-ui,sans-serif;overflow:auto}
-      .card{max-width:560px;width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:30px 28px;
-        box-shadow:0 30px 80px rgba(0,0,0,.45);backdrop-filter:blur(8px)}
-      .onair{display:inline-flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.14em;font-size:12px;color:#ff5d7a;
-        border:1px solid rgba(255,93,122,.5);padding:4px 10px;border-radius:999px}
-      .dot{width:8px;height:8px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 12px #ff3b5c;animation:p 1.4s infinite}
-      @keyframes p{50%{opacity:.35}}
-      h1{font-size:26px;line-height:1.25;margin:16px 0 8px;font-weight:750}
-      p{margin:6px 0;color:#cfc8e8}
-      .count{font-size:13px;color:#a99fd0;margin-top:10px}
-      ul{list-style:none;padding:0;margin:16px 0 4px}
-      li{padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05);margin:6px 0;font-size:14px}
-      .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
-      button{font:600 14px/1 inherit;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;color:#fff;background:rgba(255,255,255,.12)}
-      button.primary{background:linear-gradient(135deg,#8b5cf6,#ec4899)}
-      button:hover{filter:brightness(1.12)}
-      .small{font-size:12px;color:#8f86b5;margin-top:14px}
+      .wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:#121110;
+        color:#ede9e3;font:15px/1.55 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;overflow:auto;-webkit-font-smoothing:antialiased}
+      .card{max-width:560px;width:100%;background:#1a1917;border:1px solid #2f2c29;border-radius:14px;overflow:hidden}
+      .head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #2f2c29}
+      .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px}
+      .mark{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;background:#ff5a1f;color:#1b0d05}
+      .body{padding:24px 22px 22px}
+      .onair{display:inline-flex;align-items:center;gap:7px;font:700 11px/1 "Cascadia Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+        letter-spacing:.14em;text-transform:uppercase;height:26px;padding:0 10px;border-radius:4px;border:1px solid #3d3935;color:#7c766e}
+      .onair.live{background:#ff5a1f;border-color:#ff5a1f;color:#1b0d05}
+      .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+      .onair.live .dot{animation:p 1.2s ease-in-out infinite}
+      @keyframes p{50%{opacity:.25}}
+      h1{font:650 25px/1.2 "Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;letter-spacing:-.02em;margin:0 0 8px}
+      p{margin:6px 0;color:#b0aaa1}
+      .eyebrow{font:600 11px/1.2 "Cascadia Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:#7c766e;margin:20px 0 6px}
+      ul{list-style:none;padding:0;margin:0;border-top:1px solid #2f2c29}
+      li{padding:9px 0;border-bottom:1px solid #2f2c29;font-size:14px;color:#ede9e3}
+      .count{display:flex;align-items:center;gap:6px;font:500 12px/1.4 "Cascadia Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;color:#7c766e;margin-top:14px}
+      .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+      button{display:inline-flex;align-items:center;gap:7px;font:600 13.5px/1 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;height:38px;padding:0 14px;
+        border-radius:6px;cursor:pointer;color:#ede9e3;background:#22201e;border:1px solid #3d3935}
+      button:hover{background:#2b2926}
+      button.primary{background:#ff5a1f;border-color:#ff5a1f;color:#1b0d05}
+      button.primary:hover{background:#ff7341}
+      button:focus-visible{outline:2px solid #ff8a5c;outline-offset:2px}
+      svg{display:block;flex:none}
+      .small{font-size:12px;color:#7c766e;margin-top:16px}
     `;
     root.append(style);
-    const card = el('div', { class: 'card' });
+    const ICONS = globalThis.__xradioIcons || {};
+    const ic = (name, size = 16) => {
+      const s = document.createElement('span');
+      s.style.cssText = 'display:inline-flex;line-height:0';
+      s.innerHTML = ICONS[name] ? `<svg viewBox="0 0 256 256" width="${size}" height="${size}" fill="currentColor" aria-hidden="true">${ICONS[name]}</svg>` : '';
+      return s;
+    };
+    const body = el('div', { class: 'body' });
+    const card = el('div', { class: 'card' },
+      el('div', { class: 'head' }, el('div', { class: 'brand' }, el('span', { class: 'mark' }, ic('broadcast-fill', 15)), 'XRadio')),
+      body);
     const wrap = el('div', { class: 'wrap' }, card);
     root.append(wrap);
     const hosts = role?.hosts || ['Defne', 'Kaan'];
     // Metinler arka plandan yayın diline göre gelir; gelmezse Türkçe yedek
     const fallback = {
-      shCollectorBadge: 'XRADIO DİNLEME NOKTASI', shCollectorTitle: 'Bu sekme senin yerine X\'i dinliyor 🎧',
+      shCollectorBadge: 'XRADIO DİNLEME NOKTASI', shCollectorTitle: 'Bu sekme senin yerine X\'i dinliyor',
       shCollectorText: `${hosts[0]} ve ${hosts[1]} gündemi buradan topluyor. Sekmeyi kapatma; akışa bakmana gerek yok.`,
-      shOpenStudio: '📻 Stüdyoyu aç', shCollectorNote: 'Sekme birkaç dakikada bir kendini yeniler. Radyoyu durdurduğunda otomatik kapanır.',
-      shOnAir: 'YAYINDA', shOff: 'RADYO KAPALI', shTitleOn: 'Gündemi senin için biz takip ediyoruz 📻', shTitleOff: 'X\'e bakmak yerine radyoyu aç 📻',
+      shOpenStudio: 'Stüdyoyu aç', shCollectorNote: 'Sekme birkaç dakikada bir kendini yeniler. Radyoyu durdurduğunda otomatik kapanır.',
+      shOnAir: 'YAYINDA', shOff: 'RADYO KAPALI', shTitleOn: 'Gündemi senin için biz takip ediyoruz', shTitleOff: 'X\'e bakmak yerine radyoyu aç',
       shTextOn: `${hosts[0]} ve ${hosts[1]} akışını dinliyor; önemli bir şey olursa müziği kısıp söyleyecekler.`,
       shTextOff: 'XRadio akışındaki önemli gelişmeleri iki DJ\'in sohbetiyle anlatır; sen de işine odaklanırsın.',
-      shCount: 'Bugün X\'i açma denemen: {n}', shTalkNow: '🎙 Gündemi şimdi anlatın', shStart: '▶ Radyoyu başlat',
+      shRecent: 'Bugün konuşulanlar',
+      shCount: 'Bugün X\'i açma denemen: {n}', shTalkNow: 'Gündemi şimdi anlatın', shStart: 'Radyoyu başlat',
       shClose: 'Sekmeyi kapat', shSnooze: '5 dk bakmam lazım', shNote: 'Belirli bir paylaşımın bağlantısını açarsan kalkan araya girmez. Ayarlardan kapatabilirsin.',
     };
     const S = (k) => (role?.ui && role.ui[k]) || fallback[k];
 
     if (kind === 'collector') {
-      card.append(
-        el('div', { class: 'onair' }, el('span', { class: 'dot' }), S('shCollectorBadge')),
-        el('h1', {}, S('shCollectorTitle')),
+      put(body,
+        el('div', { class: 'onair live' }, el('span', { class: 'dot' }), S('shCollectorBadge')),
+        el('h1', { style: 'margin-top:16px' }, S('shCollectorTitle')),
         el('p', {}, S('shCollectorText')),
         el('div', { class: 'btns' },
-          el('button', { class: 'primary', onclick: () => send({ type: 'openStudio' }) }, S('shOpenStudio')),
+          el('button', { class: 'primary', onclick: () => send({ type: 'openStudio' }) }, ic('app-window'), S('shOpenStudio')),
         ),
         el('p', { class: 'small' }, S('shCollectorNote')),
       );
     } else {
       const heads = (info.headlines || []).slice(0, 4);
-      card.append(
-        el('div', { class: 'onair' }, el('span', { class: 'dot' }), info.radioOn ? S('shOnAir') : S('shOff')),
-        el('h1', {}, info.radioOn ? S('shTitleOn') : S('shTitleOff')),
+      put(body,
+        el('div', { class: 'onair' + (info.radioOn ? ' live' : '') }, el('span', { class: 'dot' }), info.radioOn ? S('shOnAir') : S('shOff')),
+        el('h1', { style: 'margin-top:16px' }, info.radioOn ? S('shTitleOn') : S('shTitleOff')),
         el('p', {}, info.radioOn ? S('shTextOn') : S('shTextOff')),
-        heads.length ? el('ul', {}, ...heads.map((h) => el('li', {}, '• ' + h.headline))) : null,
-        el('div', { class: 'count' }, S('shCount').replace('{n}', String(info.count || 1))),
+        heads.length ? el('div', { class: 'eyebrow' }, S('shRecent')) : null,
+        heads.length ? el('ul', {}, ...heads.map((h) => el('li', {}, h.headline))) : null,
+        el('div', { class: 'count' }, ic('clock-counter-clockwise', 14), S('shCount').replace('{n}', String(info.count || 1))),
         el('div', { class: 'btns' },
           info.radioOn
-            ? el('button', { class: 'primary', onclick: () => { send({ type: 'cmd', cmd: 'talkNow' }); send({ type: 'closeMe' }); } }, S('shTalkNow'))
-            : el('button', { class: 'primary', onclick: () => { send({ type: 'cmd', cmd: 'start' }); send({ type: 'closeMe' }); } }, S('shStart')),
+            ? el('button', { class: 'primary', onclick: () => { send({ type: 'cmd', cmd: 'talkNow' }); send({ type: 'closeMe' }); } }, ic('microphone-fill'), S('shTalkNow'))
+            : el('button', { class: 'primary', onclick: () => { send({ type: 'cmd', cmd: 'start' }); send({ type: 'closeMe' }); } }, ic('play-fill'), S('shStart')),
           el('button', { onclick: () => send({ type: 'closeMe' }) }, S('shClose')),
           el('button', { onclick: async () => { await send({ type: 'shield:snooze' }); role.shield.snoozed = true; hideShield(); } }, S('shSnooze')),
         ),

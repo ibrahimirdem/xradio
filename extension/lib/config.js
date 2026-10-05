@@ -125,6 +125,7 @@ export const DEFAULT_SETTINGS = {
   // Dil: kurulumda tarayıcı dilinden algılanır, Başlangıç ekranında değiştirilebilir
   language: 'tr',
   languageConfirmed: false,
+  theme: 'system',          // arayüz teması: system | light | dark
 
   // İstasyon & sunucular
   stationName: STATION_DEFAULT_NAME,
@@ -202,6 +203,7 @@ export function mergeSettings(stored) {
   s.hostA = { ...DEFAULT_SETTINGS.hostA, ...((stored && stored.hostA) || {}) };
   s.hostB = { ...DEFAULT_SETTINGS.hostB, ...((stored && stored.hostB) || {}) };
   if (!LANGUAGES.some((l) => l.code === s.language)) s.language = 'tr';
+  if (!['system', 'light', 'dark'].includes(s.theme)) s.theme = 'system';
   for (const k of ['muteWords', 'priorityAccounts', 'priorityWords']) {
     if (typeof s[k] === 'string') s[k] = s[k].split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
     if (!Array.isArray(s[k])) s[k] = [];

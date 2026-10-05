@@ -7,8 +7,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXT = path.join(root, 'extension');
-const OUT = path.join(root, 'docs', 'screenshots');
+// THEME=dark|light (varsayılan dark) · OUT=klasör (varsayılan docs/screenshots) · EXTRA=1 ayarlar ve test sayfalarını da çeker
+const OUT = process.env.OUT || path.join(root, 'docs', 'screenshots');
 const LANG = process.env.LANG_CODE || 'en';
+const THEME = process.env.THEME || 'dark';
+const SUFFIX = THEME === 'dark' ? '' : '-' + THEME;
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -28,17 +31,25 @@ for (const p of ctx.pages()) if (p.url().includes('studio.html')) await p.close(
 async function snap(page, file, { body = false } = {}) {
   const cdp = await page.context().newCDPSession(page);
   // body: yalnızca sayfa gövdesini al (açılır pencere 380 px; görünüm alanı daha geniş olabilir)
-  const clip = body ? await page.evaluate(() => { const r = document.body.getBoundingClientRect(); const bottom = Math.max(...[...document.body.children].filter((e) => e.offsetHeight > 0 && e.innerText.trim()).map((e) => e.getBoundingClientRect().bottom)); return { x: 0, y: 0, width: Math.ceil(r.width), height: Math.ceil(bottom + 14), scale: 1 }; }) : undefined;
-  const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', ...(clip ? { clip, captureBeyondViewport: true } : {}) });
+  // Başsız pencere görünüm alanından küçük olabildiğinden her zaman açık bir kırpma alanıyla, alan dışını da boyatarak yakala
+  const clip = await page.evaluate((body) => {
+    if (!body) return { x: 0, y: 0, width: innerWidth, height: innerHeight, scale: 1 };
+    const r = document.body.getBoundingClientRect();
+    const bottom = Math.max(...[...document.body.children].filter((e) => e.offsetHeight > 0 && e.innerText.trim()).map((e) => e.getBoundingClientRect().bottom));
+    return { x: 0, y: 0, width: Math.ceil(r.width), height: Math.ceil(bottom + 14), scale: 1 };
+  }, body);
+  const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', clip, captureBeyondViewport: true });
+  file = file.replace(/\.png$/, SUFFIX + '.png');
   fs.writeFileSync(path.join(OUT, file), Buffer.from(data, 'base64'));
   log('görüntü', file);
 }
 
-await sw.evaluate(async (lang) => {
+await sw.evaluate(async (o) => {
+  const lang = o.lang;
   const { settings } = await chrome.storage.local.get('settings');
-  await chrome.storage.local.set({ settings: { ...settings, language: lang, languageConfirmed: false, demoMode: true, apiKey: '', engine: 'local', musicSource: 'generative', talkiness: 'cok', listenerName: 'Alex' } });
+  await chrome.storage.local.set({ settings: { ...settings, language: lang, languageConfirmed: false, demoMode: true, apiKey: '', engine: 'local', musicSource: 'generative', talkiness: 'cok', listenerName: 'Alex', theme: o.theme } });
   await chrome.storage.local.remove('langPromptShown');
-}, LANG);
+}, { lang: LANG, theme: THEME });
 
 const studio = await ctx.newPage();
 await studio.goto(url('studio.html'));
@@ -76,6 +87,23 @@ if (process.env.DEBUG_POPUP) {
 }
 await snap(pop, 'popup.png', { body: true });
 await pop.close();
+
+if (process.env.EXTRA) {
+  // Açılır pencere boyutu sekmeyi küçültebildiğinden ek sayfalar yeni bir sekmede çekilir
+  const page = await ctx.newPage();
+  await page.setViewportSize({ width: 1360, height: 860 });
+  await page.goto(url('studio.html#ayarlar'));
+  await sleep(1500);
+  await snap(page, 'settings.png');
+  await page.goto(url('studio.html#gecmis'));
+  await sleep(1500);
+  await snap(page, 'history.png');
+  await page.goto(url('studio.html#test'));
+  await sleep(500);
+  await page.click('#run-tests');
+  await sleep(4000);
+  await snap(page, 'system-test.png');
+}
 
 await sw.evaluate(() => self.xradio.stopRadio()).catch(() => {});
 await ctx.close();
