@@ -12,6 +12,7 @@
 
 - **İki DJ, gerçek sohbet.** Defne ile Kaan gündemi bir radyo programındaki gibi karşılıklı anlatır: birbirine tepki verir, güler, lafı kapar.
 - **Arkada müzik.** YouTube canlı yayını ya da oynatma listesi çalar; DJ'ler konuşurken ses yumuşakça kısılır.
+- **Kendi müziğin, Spotify gibi.** Stüdyonun Müzik sekmesinde YouTube Music ve YouTube'da ara (şarkı, canlı yayın, çalma listesi), sürükle-bırak sıralama ve karıştırmayla *Listem*'i oluştur ya da bir YouTube / YouTube Music çalma listesini bağlantısıyla içe aktar. Arka planda görüntüsüz çalar; API anahtarı gerekmez.
 - **Tekrar yok.** Aynı olayı anlatan paylaşımlar tek hikâyede birleşir; yeni bir gelişme olmadıkça tekrar anlatılmaz.
 - **Son dakika.** Gerçekten acil olaylarda (ör. deprem) müzik kesilir; "SON DAKİKA" yağmuruna dönüşmez.
 - **Tweet okumaz.** DJ'ler haberi kendi cümleleriyle anlatır; başka dildeki paylaşımları çevirir.
@@ -44,7 +45,7 @@ X hesabın yoksa **Demo yayınıyla dene** düğmesi kurgusal bir örnek akışl
 - Her şey **senin tarayıcında** çalışır; XRadio'nun sunucusu ya da istatistik toplaması yoktur.
 - X'te sadece **okur**; hiçbir şey paylaşmaz, beğenmez, takip etmez.
 - Gemini anahtarı girersen paylaşım metinleri **senin anahtarınla** Google Gemini API'sine gönderilir. Anahtar yalnızca bu tarayıcıda saklanır.
-- Anahtarsız modda hiçbir veri tarayıcıdan çıkmaz.
+- Anahtarsız modda, yalnızca senin yaptığın müzik aramaları YouTube'a gider (sadece arama yaptığında); başka hiçbir veri tarayıcıdan çıkmaz.
 
 Ayrıntılı teknik belge: [docs/TECHNICAL.tr.md](docs/TECHNICAL.tr.md)
 

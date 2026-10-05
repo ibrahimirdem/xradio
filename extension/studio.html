@@ -16,6 +16,7 @@
     </div>
     <nav id="nav">
       <a href="#yayin" data-tab="yayin" data-ic="broadcast"><i class="nav-ic"></i><span data-i18n>Canlı yayın</span></a>
+      <a href="#muzik" data-tab="muzik" data-ic="music-notes"><i class="nav-ic"></i><span data-i18n>Müzik</span></a>
       <a href="#masa" data-tab="masa" data-ic="newspaper"><i class="nav-ic"></i><span data-i18n>Haber masası</span></a>
       <a href="#gecmis" data-tab="gecmis" data-ic="clock-counter-clockwise"><i class="nav-ic"></i><span data-i18n>Yayın geçmişi</span></a>
       <a href="#ayarlar" data-tab="ayarlar" data-ic="sliders-horizontal"><i class="nav-ic"></i><span data-i18n>Ayarlar</span></a>
@@ -101,6 +102,47 @@
           </section>
         </div>
       </div>
+    </section>
+
+    <!-- ============================== MÜZİK -->
+    <section class="tab" id="tab-muzik">
+      <header class="page-head"><h2 class="page-title" data-i18n>Müzik</h2><div class="lib-now" id="lib-now"></div></header>
+      <p class="lead" data-i18n>YouTube ve YouTube Music'te ara, beğendiklerini listene ekle. Listen arka planda görüntüsüz çalar; DJ'ler konuşurken ses kısılır.</p>
+      <div class="lib">
+        <section class="panel lib-search">
+          <form class="search-bar" id="lib-form" role="search">
+            <i data-icon="magnifying-glass" data-size="17"></i>
+            <input id="lib-q" type="search" autocomplete="off" data-i18n-ph placeholder="Şarkı, sanatçı, yayın ya da YouTube bağlantısı…">
+            <button class="primary" type="submit" data-i18n>Ara</button>
+          </form>
+          <div class="seg" id="lib-kinds" role="tablist">
+            <button type="button" role="tab" data-kind="songs" aria-selected="true" data-i18n>Şarkılar</button>
+            <button type="button" role="tab" data-kind="live" aria-selected="false" data-i18n>Canlı yayınlar</button>
+            <button type="button" role="tab" data-kind="playlists" aria-selected="false" data-i18n>Çalma listeleri</button>
+            <button type="button" role="tab" data-kind="videos" aria-selected="false" data-i18n>Videolar</button>
+          </div>
+          <div class="results" id="lib-results"></div>
+        </section>
+        <section class="panel lib-list">
+          <div class="panel-head"><h3 data-i18n>Listem</h3><span class="dim small mono" id="lib-count"></span></div>
+          <div class="row lib-actions">
+            <button class="primary" id="lib-play"><i data-icon="play-fill" data-size="15"></i><span data-i18n>Listemi çal</span></button>
+            <button id="lib-shuffle" aria-pressed="false"><i data-icon="shuffle" data-size="15"></i><span data-i18n>Karıştır</span></button>
+            <button class="ghost" id="lib-clear"><i data-icon="trash" data-size="15"></i><span data-i18n>Temizle</span></button>
+          </div>
+          <div class="lib-source small" id="lib-source"></div>
+          <ol class="tracks rows" id="lib-tracks"></ol>
+          <form class="lib-import" id="lib-import">
+            <i data-icon="link-simple" data-size="16"></i>
+            <input id="lib-import-url" autocomplete="off" data-i18n-ph placeholder="YouTube ya da YouTube Music çalma listesi bağlantısı">
+            <button type="submit" data-i18n>İçe aktar</button>
+          </form>
+        </section>
+      </div>
+      <section class="panel">
+        <div class="panel-head"><h3 data-i18n>Hazır yayınlar</h3></div>
+        <div class="presets" id="lib-presets"></div>
+      </section>
     </section>
 
     <!-- ============================== HABER MASASI -->

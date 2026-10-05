@@ -59,6 +59,20 @@ const UI_ICONS = {
   'circle-half': ['regular'],
   'user-circle': ['regular'],
   'list-checks': ['regular'],
+  // Müzik sekmesi (arama, liste)
+  'magnifying-glass': ['regular'],
+  plus: ['bold'],
+  shuffle: ['regular', 'bold'],
+  'dots-six-vertical': ['bold'],
+  'caret-up': ['bold'],
+  'caret-down': ['bold'],
+  x: ['bold'],
+  playlist: ['regular', 'fill'],
+  'list-plus': ['regular'],
+  'link-simple': ['regular'],
+  'vinyl-record': ['regular'],
+  'arrow-left': ['regular'],
+  queue: ['regular'],
 };
 
 // Odak kalkanı için yalnızca birkaç ikon (içerik betikleri modül içe aktaramaz)

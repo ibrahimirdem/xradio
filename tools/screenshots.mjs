@@ -74,6 +74,16 @@ await studio.goto(url('studio.html#masa'));
 await sleep(2000);
 await snap(studio, 'news-desk.png');
 
+// Müzik sekmesi: gerçek YouTube Music araması, ilk parçalar Listem'e eklenir
+await studio.goto(url('studio.html#muzik'));
+await studio.waitForSelector('#lib-q');
+await studio.fill('#lib-q', process.env.MUSIC_QUERY || 'lofi beats');
+await studio.click('#lib-form button[type="submit"]');
+for (let i = 0; i < 40 && (await studio.locator('#lib-results .row-item').count()) < 5; i++) await sleep(500);
+for (let i = 0; i < 5; i++) { await studio.locator('#lib-results .row-item .acts button').nth(i).click().catch(() => {}); await sleep(350); }
+await sleep(2500);
+await snap(studio, 'music.png');
+
 await studio.goto(url('studio.html#yayin'));
 const pop = await ctx.newPage();
 await pop.setViewportSize({ width: 380, height: 640 });

@@ -1,7 +1,8 @@
-import { bg, cmd, onStationEvent, getSettings, saveSettings, $, $$, h, toast, relTime, clock, cleanTitle, phaseText, connectViz, makeBars, captionNodes, kindLabel, categoryLabel, applyTheme, setButton, tag, noticeBox } from './common.js';
+import { bg, cmd, onStationEvent, getSettings, saveSettings, backgroundIsStale, $, $$, h, toast, relTime, clock, cleanTitle, phaseText, connectViz, makeBars, captionNodes, kindLabel, categoryLabel, applyTheme, setButton, tag, noticeBox } from './common.js';
 import { t, setUiLang, applyI18n, uiLocale } from './i18n.js';
 import { applyIcons, iconSvg, icon } from './icons.js';
-import { GEMINI_VOICES, MUSIC_STYLES, DEFAULT_SETTINGS, LANGUAGES, langInfo, personasFor, DEFAULT_PERSONAS, DEFAULT_PERSONAS_EN } from '../lib/config.js';
+import { initLibrary, refreshLibrary, libraryNowPlaying } from './library.js';
+import { GEMINI_VOICES, MUSIC_STYLES, DEFAULT_SETTINGS, LANGUAGES, mergeSettings, langInfo, personasFor, DEFAULT_PERSONAS, DEFAULT_PERSONAS_EN } from '../lib/config.js';
 import { YT_PRESETS, parseYouTubeUrl, embedUrl } from '../lib/youtube.js';
 import { GeminiClient, pickModels } from '../lib/gemini.js';
 import { BrowserVoice } from '../lib/voice.js';
@@ -15,7 +16,7 @@ const setBars = makeBars($('#bars'), 28);
 // ------------------------------------------------------------------ Sekmeler
 function showTab() {
   const tab = (location.hash || '#yayin').slice(1);
-  const valid = ['yayin', 'masa', 'gecmis', 'ayarlar', 'test', 'hosgeldin'];
+  const valid = ['yayin', 'muzik', 'masa', 'gecmis', 'ayarlar', 'test', 'hosgeldin'];
   const cur = valid.includes(tab) ? tab : 'yayin';
   $$('.tab').forEach((s) => s.classList.toggle('active', s.id === 'tab-' + cur));
   // Etkin sekmenin ikonu dolu (fill), diğerleri normal (regular) çizilir
@@ -107,7 +108,8 @@ function renderLive() {
 
   const np = st.nowPlaying;
   $('#np-title').textContent = on ? (np ? cleanTitle(np.title) : (st.musicStatus?.text || t('Müzik yükleniyor…'))) : t('Müzik bekleniyor');
-  $('#np-sub').textContent = on && np ? [np.artist, np.styleLabel, np.mode === 'tab' ? t('sekme modu') : ''].filter(Boolean).join(' · ') : '';
+  $('#np-sub').textContent = on && np ? [np.artist, np.queue ? `${np.queue.name || t('Listem')} ${np.queue.index}/${np.queue.total}` : np.styleLabel, np.mode === 'tab' ? t('sekme modu') : ''].filter(Boolean).join(' · ') : '';
+  libraryNowPlaying(np, on);
   $('#music-status').textContent = st.musicStatus?.text ? `${t('Durum')}: ${st.musicStatus.text}` : '';
 
   const notice = $('#notice');
@@ -260,6 +262,8 @@ function fillMusicSelect(sel, current) {
     for (const p of list) og.append(h('option', { value: 'yt:' + p.url }, p.label.replace('(canlı)', `(${t('canlı')})`).replace('(liste)', `(${t('liste')})`)));
     sel.append(og);
   }
+  // Kişisel liste en üstte (Müzik sekmesinden oluşturulur)
+  if (settings.myList?.length) sel.prepend(h('optgroup', { label: t('Listem') }, h('option', { value: 'mylist' }, t('Listem ({n} parça)', { n: settings.myList.length }))));
   const custom = YT_PRESETS.some((p) => p.url === settings.youtubeUrl) ? null : settings.youtubeUrl;
   if (custom) sel.append(h('optgroup', { label: t('Senin seçimin') }, h('option', { value: 'yt:' + custom }, t('Özel YouTube bağlantısı'))));
   sel.append(h('optgroup', { label: t('Diğer') },
@@ -572,7 +576,7 @@ function renderSettings() {
   root.append(h('div', { class: 'panel sgroup' },
     groupHead('music-notes', t('Müzik')),
     h('p', {}, t('Arka planda YouTube canlı yayını ya da oynatma listesi çalar; DJ\'ler konuşurken ses otomatik kısılır.')),
-    field(t('Müzik'), ms),
+    field(t('Müzik'), ms, h('span', {}, t('Şarkı aramak ve kendi listeni oluşturmak için:') + ' ', h('a', { href: '#muzik' }, t('Müzik sekmesi')))),
     field(t('Kendi YouTube bağlantın'), urlIn, t('Canlı yayın, video, oynatma listesi veya YouTube Music bağlantısı yapıştır.')),
     urlOut,
     field(t('YouTube oynatma yöntemi'), select('youtubeMode', [['auto', t('Otomatik (sekmesiz; gerekirse sekme)')], ['embed', t('Sadece gömülü (sekmesiz)')], ['tab', t('YouTube sekmesinde (Premium hesabınla reklamsız)')]])),
@@ -751,12 +755,29 @@ async function start() {
 }
 
 // ------------------------------------------------------------------ Başlat
+/** Kurulum adımı: hata verirse konsola yazılır, sayfanın geri kalanı çalışmaya devam eder. */
+async function safe(label, fn) {
+  try { return await fn(); } catch (e) { console.error(`[XRadio] ${label}:`, e); return undefined; }
+}
+
+/** Eklenti dosyaları güncellenip eklenti yeniden yüklenmediyse arka plan eski sürümde kalır: kullanıcıyı uyar. */
+function showStaleBanner() {
+  if ($('#stale-bar')) return;
+  const bar = h('div', { class: 'stale-bar', id: 'stale-bar', role: 'alert' });
+  bar.insertAdjacentHTML('beforeend', iconSvg('warning-fill', { size: 16 }));
+  bar.append(h('span', {}, t('Eklenti dosyaları güncellendi ama arka plan hâlâ eski sürümde çalışıyor. Her şeyin düzgün çalışması için eklentiyi yeniden yükle (stüdyo kapanır, yeniden açman gerekir).')));
+  const b = h('button', { class: 'sm primary', onclick: () => chrome.runtime.reload() });
+  setButton(b, 'arrow-counter-clockwise', t('Şimdi yeniden yükle'), { size: 14 });
+  bar.append(b);
+  $('main').prepend(bar);
+}
+
 async function init() {
   settings = await getSettings();
-  applyTheme(settings.theme);
+  await safe('tema', () => applyTheme(settings.theme));
   setUiLang(settings.language);
-  applyI18n(document);
-  applyIcons(document);
+  await safe('çeviri', () => applyI18n(document));
+  await safe('ikonlar', () => applyIcons(document));
   const mf = chrome.runtime.getManifest();
   $('#version').textContent = `XRadio v${mf.version_name || mf.version}`;
   // Dil hiç onaylanmadıysa Başlangıç ekranını (dil seçimiyle) bir kez kendiliğinden göster;
@@ -766,15 +787,29 @@ async function init() {
     if (!langPromptShown && !location.hash) location.hash = '#hosgeldin';
     if (location.hash === '#hosgeldin') chrome.storage.local.set({ langPromptShown: true });
   }
-  renderHosts();
-  fillMusicSelect($('#quick-music'), musicValue());
-  renderMixer();
-  $('#mix-mute').addEventListener('click', toggleMute);
-  $('#quick-music').addEventListener('change', () => applyMusicValue($('#quick-music').value));
-  await refresh();
-  seedTranscript();
-  showTab();
-  initWelcome();
+  // Sekme ve menü ikonları en başta: aşağıdaki bölümlerden biri hata verse de sayfa kullanılabilir kalır
+  await safe('sekmeler', showTab);
+  await safe('sunucular', renderHosts);
+  await safe('müzik seçimi', () => {
+    fillMusicSelect($('#quick-music'), musicValue());
+    $('#quick-music').addEventListener('change', () => applyMusicValue($('#quick-music').value));
+  });
+  await safe('mikser', () => { renderMixer(); $('#mix-mute').addEventListener('click', toggleMute); });
+  await safe('müzik sekmesi', () => initLibrary({
+    settings: () => settings,
+    // Kütüphane değişiklikleri hemen kaydedilir (gecikmeli kayıt yok): ardından "şimdi çal" komutu güncel listeyi görür
+    save: async (patch) => {
+      Object.assign(settings, patch);
+      const r = await saveSettings(patch);
+      if (r?.settings) settings = r.settings;
+      safe('müzik seçimi', () => fillMusicSelect($('#quick-music'), musicValue()));
+      return r;
+    },
+  }));
+  await safe('durum', refresh);
+  safe('transkript', seedTranscript);
+  await safe('başlangıç', initWelcome);
+  backgroundIsStale().then((stale) => { if (stale) showStaleBanner(); }).catch(() => {});
 
   $('#toggle').addEventListener('click', async () => {
     if (state?.on) { await cmd('stop'); await refresh(); } else await start();
@@ -807,9 +842,9 @@ async function init() {
   chrome.storage.onChanged.addListener((ch, area) => {
     if (area !== 'local' || !ch.settings) return;
     const prevLang = settings.language;
-    settings = { ...settings, ...ch.settings.newValue };
+    settings = mergeSettings({ ...settings, ...ch.settings.newValue });
     if (ch.settings.newValue?.language && ch.settings.newValue.language !== prevLang) location.reload();
-    else { renderHosts(); applyTheme(settings.theme); syncMixer(); }
+    else { renderHosts(); applyTheme(settings.theme); syncMixer(); refreshLibrary(); }
   });
   connectViz((d) => { setBars(d.bands); if (d.talking) setSpeaking(d.speaker); else setSpeaking(null); });
   setInterval(refresh, 5000);

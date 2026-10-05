@@ -34,6 +34,7 @@ async function handle(msg) {
     case 'inbox': { const n = await station.drainInbox(); if (n && station.on) station.tick().catch(() => {}); return { ok: true, fresh: n }; }
     case 'talkNow': return station.talkNow();
     case 'skip': return station.skip();
+    case 'playTrack': return station.playTrack(msg.id);
     case 'listener': return station.listenerMessage(msg.text);
     case 'muteStory': station.muteStory(msg.id); return { ok: true };
     case 'resetMemory': await initP; return station.resetMemory();

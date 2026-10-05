@@ -12,6 +12,7 @@
 
 - **Two DJs, real banter.** Defne and Kaan discuss your feed like a real radio show. They react to each other, laugh at each other's jokes and sometimes cut in.
 - **Music in the background.** A YouTube live stream or playlist (lo-fi, jazz, synthwave…) keeps playing and fades down whenever the DJs talk.
+- **Your own music, Spotify-style.** Search YouTube Music and YouTube right inside the studio (songs, live streams, playlists), build *My list* with drag-and-drop ordering and shuffle, or import any YouTube / YouTube Music playlist by link. It plays audio-only in the background; no API key needed.
 - **No repeats.** Posts about the same event are merged into one story. A story is told once, and only comes back if there's a real new development.
 - **Breaking news.** Truly urgent events (an earthquake, say) interrupt the music. It never turns into a wall of "BREAKING".
 - **No tweets read aloud.** The DJs summarize in their own words. Posts in other languages are translated.
@@ -41,6 +42,8 @@ No X account handy? Click **Try the demo broadcast**, which uses a fictional sam
 
 **Shortcuts:** `Alt+Shift+R` start/stop · `Alt+Shift+G` talk now · `Alt+Shift+N` skip
 
+![Music tab: search YouTube Music and build your own list](docs/screenshots/music.png)
+
 | Popup | News desk |
 |---|---|
 | <img src="docs/screenshots/popup.png" width="300" alt="XRadio popup"> | <img src="docs/screenshots/news-desk.png" width="520" alt="News desk"> |
@@ -50,7 +53,7 @@ No X account handy? Click **Try the demo broadcast**, which uses a fictional sam
 - Everything runs **in your browser**. There are no XRadio servers and no analytics.
 - XRadio only **reads** your home timeline. It never posts, likes or follows.
 - With a Gemini key, post text is sent to Google's Gemini API using **your** key to write and voice the show. The key is stored only in your browser's local storage.
-- Without a key, nothing leaves your browser.
+- Without a key, nothing leaves your browser except your own music searches, which go to YouTube (only when you search).
 
 ## For developers
 
@@ -58,6 +61,7 @@ No X account handy? Click **Try the demo broadcast**, which uses a fictional sam
 npm install          # test tooling only (Playwright)
 npm test             # unit tests
 npm run test:e2e     # loads the extension in Chromium with a mock Gemini server and a mock x.com
+                     # BROWSER=edge or BROWSER=chrome runs it in your installed browser (separate temp profile)
 npm run pack         # builds dist/xradio-<version>.zip
 npm run icons        # re-embeds the Phosphor icons used by the UI
 npm run screenshots  # regenerates the README screenshots (THEME=light for the light theme)

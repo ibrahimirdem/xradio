@@ -51,7 +51,7 @@ function render() {
   const np = st.nowPlaying;
   if (np && on) {
     $('#np-title').textContent = cleanTitle(np.title) || t('Müzik');
-    $('#np-sub').textContent = [np.artist, np.styleLabel].filter(Boolean).join(' · ');
+    $('#np-sub').textContent = [np.artist, np.queue ? `${np.queue.name || t('Listem')} ${np.queue.index}/${np.queue.total}` : np.styleLabel].filter(Boolean).join(' · ');
   } else {
     $('#np-title').textContent = on ? (st.musicStatus?.text || t('Müzik yükleniyor…')) : t('Müzik bekleniyor');
     $('#np-sub').textContent = on ? '' : t('YouTube canlı yayını / oynatma listesi');

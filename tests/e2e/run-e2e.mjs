@@ -58,21 +58,29 @@ async function waitFor(fn, { timeout = 60000, interval = 1000, label = '' } = {}
 const mock = await startMock(8787, { latency: 200 });
 console.log('Sahte Gemini:', mock.url);
 
-// Tarayıcı: varsayılan Playwright Chromium; BROWSER=chrome ile bilgisayardaki gerçek Google Chrome
-// (Chrome 137+ komut satırından eklenti yüklemeyi kapattığı için DevTools protokolüyle Extensions.loadUnpacked kullanılır).
+// Tarayıcı: varsayılan Playwright Chromium; BROWSER=chrome ya da BROWSER=edge ile bilgisayardaki gerçek tarayıcı,
+// ayrı ve geçici bir profille (kullanıcının kendi oturumuna dokunulmaz). Chrome 137+ komut satırından eklenti
+// yüklemeyi kapattığı için DevTools protokolüyle Extensions.loadUnpacked kullanılır.
+const REAL = {
+  chrome: { name: 'Google Chrome', exe: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' },
+  edge: { name: 'Microsoft Edge', exe: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' },
+};
 let ctx; let chromeProc = null; let browser = null; let extIdFromCdp = null;
-if (process.env.BROWSER === 'chrome') {
+if (REAL[process.env.BROWSER]) {
   const { spawn } = await import('node:child_process');
-  const exe = process.env.CHROME_EXE || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-  const profile = fs.mkdtempSync(path.join(OUT, 'chrome-profile-'));
-  const port = 9339;
+  const real = REAL[process.env.BROWSER];
+  const exe = process.env.CHROME_EXE || real.exe;
+  const profile = fs.mkdtempSync(path.join(OUT, `${process.env.BROWSER}-profile-`));
+  const port = process.env.BROWSER === 'edge' ? 9340 : 9339;
   chromeProc = spawn(exe, [`--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--enable-unsafe-extension-debugging',
     '--no-first-run', '--no-default-browser-check', '--mute-audio', '--window-size=1360,900', ...(process.env.HEADED ? [] : ['--headless=new']), 'about:blank'], { stdio: 'ignore' });
+  // Betik hata verip yarıda kalsa da başlatılan test tarayıcısı açık kalmasın
+  process.on('exit', () => { try { chromeProc.kill(); } catch { /* */ } });
   for (let i = 0; i < 40 && !browser; i++) { await sleep(500); browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`).catch(() => null); }
   const cdp = await browser.newBrowserCDPSession();
   extIdFromCdp = (await cdp.send('Extensions.loadUnpacked', { path: EXT })).id;
   ctx = browser.contexts()[0];
-  console.log('Tarayıcı: Google Chrome', browser.version());
+  console.log('Tarayıcı:', real.name, browser.version());
 } else {
   ctx = await chromium.launchPersistentContext('', {
     headless: !process.env.HEADED,
@@ -106,9 +114,24 @@ studio.on('pageerror', (e) => consoleErrors.push('studio pageerror: ' + e.messag
 studio.setDefaultTimeout(15000);
 await studio.goto(extUrl('studio.html#yayin'));
 
+// Arka plan betiği (MV3 servis çalışanı) boşta kalınca tarayıcı onu askıya alabilir (Edge'de sık); Playwright'ın
+// elindeki eski bağlantı o zaman yanıt vermez. Bu durumda betik bir eklenti mesajıyla uyandırılır ve yeniden bağlanılır.
+const latestSw = () => ctx.serviceWorkers().filter((w) => w.url().includes(extId)).at(-1);
+const wakeSw = async () => {
+  const page = ctx.pages().find((p) => p.url().startsWith(`chrome-extension://${extId}/`));
+  if (page) await T(page.evaluate(() => chrome.runtime.sendMessage({ to: 'bg', type: 'getSettings' })).catch(() => null), 10000, 'uyandırma').catch(() => null);
+  for (let i = 0; i < 20; i++) { const w = latestSw(); if (w && w !== sw) return w; await sleep(250); }
+  return latestSw() || sw;
+};
 const swEval = async (fn, arg) => {
-  sw = ctx.serviceWorkers().find((w) => w.url().includes(extId)) || sw;
-  return T(sw.evaluate(fn, arg), 25000, 'servis çalışanı');
+  sw = latestSw() || sw;
+  try {
+    return await T(sw.evaluate(fn, arg), 12000, 'servis çalışanı');
+  } catch (e) {
+    if (!/dönmedi|Target|closed|destroyed/i.test(e.message)) throw e;
+    sw = await wakeSw();
+    return T(sw.evaluate(fn, arg), 25000, 'servis çalışanı (yeniden)');
+  }
 };
 const getState = () => swEval(() => self.xradio.getState());
 globalThis.__diagState = getState;
@@ -175,6 +198,24 @@ if (run('dil')) {
   // Onaylıyken stüdyo artık Başlangıç'a zorlamaz
   await studio.goto(extUrl('studio.html#yayin'));
   check('Onaydan sonra stüdyo doğrudan açılıyor', await studio.evaluate(() => location.hash === '#yayin'));
+
+  // Eklenti dosyaları güncellenip arka plan betiği eski sürümde kalmışsa (yeni ayar alanlarını bilmiyorsa)
+  // stüdyo yine eksiksiz açılmalı ve kullanıcıyı yeniden yüklemeye yönlendirmeli.
+  const stalePage = await ctx.newPage();
+  await stalePage.addInitScript(() => {
+    const orig = chrome.runtime.sendMessage.bind(chrome.runtime);
+    chrome.runtime.sendMessage = async (msg, ...rest) => {
+      const r = await orig(msg, ...rest);
+      if (msg?.type === 'getSettings' && r) { delete r.myList; delete r.myListShuffle; delete r.theme; }
+      return r;
+    };
+  });
+  await stalePage.goto(extUrl('studio.html'));
+  await waitFor(() => stalePage.evaluate(() => !!document.querySelector('#stale-bar')), { timeout: 8000, label: 'eski arka plan uyarısı' });
+  const st0 = await stalePage.evaluate(() => ({ tab: document.querySelector('.tab.active')?.id, nav: document.querySelectorAll('#nav .nav-ic svg').length, toggle: document.querySelector('#toggle')?.textContent.trim(), bar: !!document.querySelector('#stale-bar') }));
+  check('Arka plan eski sürümdeyken stüdyo yine açıldı (sekme, menü ikonları, düğmeler)', st0.tab === 'tab-yayin' && st0.nav === 7 && !!st0.toggle, JSON.stringify(st0));
+  check('Eski arka plan için yeniden yükleme uyarısı gösterildi', st0.bar);
+  await stalePage.close();
 }
 
 // ====================================================================== 1) Gemini modu + demo akışı
@@ -300,7 +341,8 @@ if (run('fallback')) {
   await fetch(mock.url + '/__config', { method: 'POST', body: JSON.stringify({ failTts: false }) });
   await setSettings({ apiKey: 'bad-key' });
   await swEval(() => self.xradio.startRadio());
-  const op2 = await waitFor(async () => (await logs()).find((l) => l.kind === 'opener'), { timeout: 90000, label: 'açılış (geçersiz anahtar)' });
+  // Yerel açılış başsız tarayıcıda tahmini konuşma süreleriyle okunur (~1,5 dk); bekleme süresi buna göre
+  const op2 = await waitFor(async () => (await logs()).find((l) => l.kind === 'opener'), { timeout: 150000, label: 'açılış (geçersiz anahtar)' });
   const st = await getState();
   check('Geçersiz anahtarda yerel moda düşüldü ve yayın sürdü', !!op2 && op2.writer === 'local' && st.engine === 'local', `${op2?.writer} · motor=${st.engine}`);
   check('Kullanıcıya anahtar hatası bildirildi', (st.errors || []).some((e) => /anahtar/i.test(e.msg)), (st.errors || []).map((e) => e.msg).join(' | ').slice(0, 160));
@@ -398,6 +440,75 @@ if (run('youtube')) {
   check('Yazar çalan YouTube parçasını biliyor', /YouTube'dan/.test(writerReq?.prompt || ''));
   const tabs = await swEval(() => chrome.tabs.query({ url: 'https://www.youtube.com/*' }));
   check('Gömülü modda ek sekme açılmadı', tabs.length === 0);
+}
+
+// ====================================================================== 6) Müzik sekmesi: arama + kişisel liste (oynatma internet gerekir)
+if (run('muzik')) {
+  console.log('\n▶ Senaryo 6: Müzik sekmesi — arama, Listem, kuyruk');
+  await resetAll();
+  await setSettings({ apiKey: 'test-key', apiBase: mock.url, demoMode: true, musicSource: 'youtube', youtubeMode: 'embed', talkiness: 'az', myList: [], myListShuffle: false });
+  // Arama yanıtları sabit örneklerden gelir (gerçek YouTube yanıtlarından sadeleştirilmiş); oynatma gerçek YouTube'dan
+  const FX = path.resolve(__dirname, '../fixtures/youtube');
+  const searchHits = [];
+  await ctx.route(/^https:\/\/(www|music)\.youtube\.com\/youtubei\/v1\/search/, async (route) => {
+    const req = route.request();
+    const body = JSON.parse(req.postData() || '{}');
+    searchHits.push({ url: req.url(), origin: (await req.allHeaders()).origin });
+    const file = req.url().includes('music.youtube.com') ? 'music-songs.json' : body.params === 'EgJAAQ==' ? 'live.json' : body.params === 'EgIQAw==' ? 'playlists.json' : 'videos.json';
+    await route.fulfill({ status: 200, contentType: 'application/json', body: fs.readFileSync(path.join(FX, file), 'utf8') });
+  });
+  await studio.goto(extUrl('studio.html#muzik'));
+  await studio.waitForSelector('#lib-q');
+  const rowsIn = (sel) => studio.locator(`${sel} .row-item`).count();
+  const waitRows = (sel, n = 1) => waitFor(async () => (await rowsIn(sel)) >= n, { timeout: 15000, interval: 300, label: 'arama sonuçları' });
+  await studio.fill('#lib-q', 'tarkan');
+  await studio.click('#lib-form button[type="submit"]');
+  await waitRows('#lib-results', 5);
+  const songRows = await rowsIn('#lib-results');
+  check('Şarkı araması sonuç listeledi (YouTube Music)', songRows >= 8 && searchHits.some((h) => h.url.includes('music.youtube.com')), `${songRows} sonuç`);
+  const first = await studio.locator('#lib-results .row-item .title').first().textContent();
+  check('Sonuçlarda başlık, sanatçı ve süre görünüyor', !!first && /\d:\d\d/.test(await studio.locator('#lib-results .row-item .dur').first().textContent()), first);
+  await studio.click('#lib-kinds [data-kind="live"]');
+  await waitFor(async () => searchHits.some((h) => !h.url.includes('music')), { timeout: 10000, label: 'canlı arama' });
+  await waitRows('#lib-results', 3);
+  check('Canlı yayın aramasında "CANLI" etiketi var', (await studio.locator('#lib-results .row-item .tag.danger').count()) >= 3);
+  await studio.click('#lib-kinds [data-kind="songs"]');
+  await waitFor(async () => /\d:\d\d/.test(await studio.locator('#lib-results .row-item .dur').first().textContent().catch(() => '')), { timeout: 10000, label: 'şarkılara dönüş' });
+  // İlk üç şarkıyı listeye ekle
+  for (let i = 0; i < 3; i++) {
+    await studio.locator('#lib-results .row-item .acts button').nth(i).click();
+    await waitFor(async () => (await readSettings()).myList.length === i + 1, { timeout: 5000, label: 'listeye ekleme' });
+  }
+  const s1 = await readSettings();
+  check('Üç parça Listem\'e eklendi', s1.myList.length === 3 && s1.myList.every((x) => x.id && x.title && x.thumb), s1.myList.map((x) => x.title).join(' | '));
+  check('Listem paneli parçaları gösteriyor', (await rowsIn('#lib-tracks')) === 3);
+  // Listemi çal → radyo açılır, istasyon kişisel kuyruğu çalar
+  await studio.click('#lib-play');
+  const q = await waitFor(async () => { const s = await getState(); return s.on && s.nowPlaying?.queue && s; }, { timeout: 30000, label: 'kuyruk çalıyor' });
+  check('"Listemi çal" radyoyu açtı ve kuyruğu yükledi', !!q && (await readSettings()).musicSource === 'mylist', q ? `${q.nowPlaying.title} · ${q.nowPlaying.queue.index}/${q.nowPlaying.queue.total}` : JSON.stringify((await getState()).musicStatus));
+  const firstId = q?.nowPlaying?.trackId;
+  check('Çalan parça listede vurgulandı', await waitFor(async () => (await studio.locator(`#lib-tracks li.playing[data-id="${firstId}"]`).count()) === 1, { timeout: 8000, label: 'vurgu' }));
+  const audible = await waitFor(async () => { const s = await getState(); return s.musicStatus?.state === 'playing' && s; }, { timeout: 40000, label: 'parça sesi' });
+  check('Listedeki parça gerçekten çalıyor (YouTube)', !!audible, audible ? audible.nowPlaying?.title : JSON.stringify((await getState()).musicStatus));
+  if (!audible || process.env.DEBUG_YT) {
+    const yd = (await swEval(() => self.xradio.command('diagnostics')).catch(() => null))?.music?.youtube;
+    if (yd) console.log('    YouTube olayları:\n      ' + (yd.events || []).join('\n      '));
+  }
+  // Sıralama değişikliği çalan parçayı kesmez
+  await studio.locator(`#lib-tracks li[data-id="${s1.myList[2].id}"] .mv-up`).click({ force: true });
+  await waitFor(async () => (await readSettings()).myList[1].id === s1.myList[2].id, { timeout: 5000, label: 'sıralama' });
+  await sleep(1200);
+  check('Sıralama değişti, çalan parça kesilmedi', (await getState()).nowPlaying?.trackId === firstId);
+  // Atla → sıradaki parça (DJ'ler konuşurken "Atla" konuşmayı atlar; bu yüzden konuşmanın bitmesi beklenir)
+  await waitFor(async () => (await getState()).phase !== 'talking', { timeout: 90000, interval: 500, label: 'konuşma bitti' });
+  await swEval(() => self.xradio.command('skip'));
+  const skipped = await waitFor(async () => { const s = await getState(); return s.nowPlaying?.trackId && s.nowPlaying.trackId !== firstId && s; }, { timeout: 10000, label: 'atlama' });
+  check('Atla kuyruktaki sonraki parçaya geçti', !!skipped, skipped?.nowPlaying?.title);
+  // Listeden çıkar
+  await studio.locator(`#lib-tracks li[data-id="${s1.myList[0].id}"] .rm`).click({ force: true });
+  check('Parça listeden çıkarıldı', await waitFor(async () => (await readSettings()).myList.length === 2, { timeout: 5000, label: 'silme' }));
+  check('Hızlı müzik seçiminde "Listem" seçeneği var', (await studio.locator('#quick-music option[value="mylist"]').count()) === 1);
+  await ctx.unroute(/^https:\/\/(www|music)\.youtube\.com\/youtubei\/v1\/search/);
 }
 
 await swEval(() => self.xradio.stopRadio()).catch(() => {});

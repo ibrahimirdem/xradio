@@ -30,14 +30,26 @@ async function session(key, value) {
 // Sadece sekmesiz bağlamlar (ses belgesi) için geçerli oturum kuralı ekliyoruz.
 async function ensureYouTubeRule() {
   try {
+    // Müzik araması: YouTube "youtubei" uç noktaları eklenti kaynağından (chrome-extension://) gelen istekleri
+    // 403 ile reddeder. Yalnızca BU eklentinin başlattığı arama isteklerine sitenin kendi kaynak başlığı verilir;
+    // YouTube'un kendi sayfalarının istekleri etkilenmez (initiatorDomains).
+    const searchRule = (id, host) => ({
+      id,
+      priority: 1,
+      action: { type: 'modifyHeaders', requestHeaders: [
+        { header: 'origin', operation: 'set', value: `https://${host}` },
+        { header: 'referer', operation: 'set', value: `https://${host}/` },
+      ] },
+      condition: { urlFilter: `|https://${host}/youtubei/`, initiatorDomains: [chrome.runtime.id], resourceTypes: ['xmlhttprequest'] },
+    });
     await chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [1],
+      removeRuleIds: [1, 2, 3],
       addRules: [{
         id: 1,
         priority: 1,
         action: { type: 'modifyHeaders', requestHeaders: [{ header: 'referer', operation: 'set', value: 'https://www.google.com/' }] },
         condition: { requestDomains: ['youtube.com', 'youtube-nocookie.com'], resourceTypes: ['sub_frame'], tabIds: [chrome.tabs.TAB_ID_NONE] },
-      }],
+      }, searchRule(2, 'www.youtube.com'), searchRule(3, 'music.youtube.com')],
     });
   } catch (e) { console.warn('YouTube kuralı eklenemedi', e); }
 }
@@ -121,6 +133,9 @@ async function command(cmd, msg = {}) {
       if (!(await session('radioOn'))) await startRadio();
       return toStation({ type: 'talkNow' });
     case 'skip': return toStation({ type: 'skip' });
+    case 'playTrack':
+      if (!(await session('radioOn'))) await startRadio();
+      return toStation({ type: 'playTrack', id: msg.id });
     case 'listener':
       if (!(await session('radioOn'))) await startRadio();
       return toStation({ type: 'listener', text: msg.text });

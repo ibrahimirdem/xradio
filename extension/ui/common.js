@@ -3,6 +3,7 @@
 import { captionParts } from '../lib/expressive.js';
 import { t, getUiLang } from './i18n.js';
 import { iconSvg } from './icons.js';
+import { mergeSettings, DEFAULT_SETTINGS } from '../lib/config.js';
 
 /**
  * Altyazı metnini DOM düğümlerine çevirir: duygu etiketleri "(güler)", araya giren tepkiler
@@ -27,8 +28,39 @@ export function onStationEvent(fn) {
   return () => chrome.runtime.onMessage.removeListener(listener);
 }
 
-export async function getSettings() { return bg('getSettings'); }
-export async function saveSettings(patch) { return bg('saveSettings', { settings: patch }); }
+/**
+ * Ayarlar doğrudan depodan okunur ve sayfanın kendi (güncel) varsayılanlarıyla tamamlanır. Arka plan betiğine
+ * sorulmaz: geliştirme sırasında sayfa dosyaları güncellenip arka plan betiği eski sürümde kalabilir; o zaman
+ * eksik alanlar (ör. yeni eklenen bir ayar) sayfanın kurulumunu bozardı.
+ */
+export async function getSettings() {
+  try {
+    const { settings } = await chrome.storage.local.get('settings');
+    return mergeSettings(settings || {});
+  } catch {
+    const r = await bg('getSettings');
+    return mergeSettings(r && !r.error ? r : {});
+  }
+}
+
+/** Ayar kaydı arka plan betiği üzerinden; yanıt vermezse doğrudan depoya yazılır. Dönen ayarlar her zaman tamdır. */
+export async function saveSettings(patch) {
+  const r = await bg('saveSettings', { settings: patch });
+  if (r?.settings && !r.error) return { ...r, settings: mergeSettings(r.settings) };
+  const merged = mergeSettings({ ...(await getSettings()), ...patch });
+  await chrome.storage.local.set({ settings: merged });
+  return { ok: true, settings: merged };
+}
+
+/**
+ * Arka plan betiği bu sayfadan eski bir sürümde mi çalışıyor? (Eklenti dosyaları güncellendi ama eklenti yeniden
+ * yüklenmedi.) Arka planın döndürdüğü ayarlarda, sayfanın bildiği varsayılan alanlardan biri eksikse eskidir.
+ */
+export async function backgroundIsStale() {
+  const r = await bg('getSettings');
+  if (!r || r.error) return false;
+  return Object.keys(DEFAULT_SETTINGS).some((k) => !(k in r));
+}
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -105,7 +137,7 @@ export function cleanTitle(t) {
   return String(t || '').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-export function kindLabel(k) { return KIND_LABEL[k] ? t(KIND_LABEL[k]) : (k || t('Ara')); }
+export function kindLabel(k) { return KIND_LABEL[k] ? t(KIND_LABEL[k]) : (k || t('Yayın arası')); }
 export function categoryLabel(c) { return CATEGORY[c] ? t(CATEGORY[c]) : (c || ''); }
 
 export const KIND_LABEL = {

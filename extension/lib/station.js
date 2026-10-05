@@ -114,8 +114,12 @@ export class Station {
     if (!initial && this.engine) {
       this.engine.setVolumes({ master: this.settings.masterVolume, music: this.settings.musicVolume, voice: this.settings.voiceVolume });
       const musicChanged = ['musicSource', 'youtubeUrl', 'youtubeMode', 'streamUrl'].some((k) => prev[k] !== this.settings[k]);
+      const listChanged = JSON.stringify(prev.myList) !== JSON.stringify(this.settings.myList) || prev.myListShuffle !== this.settings.myListShuffle;
       if (musicChanged && this.on) this.restartMusic().catch((e) => this.error('müzik', e));
-      else if (this.music) {
+      else if (listChanged && this.on && this.settings.musicSource === 'mylist') {
+        // Liste düzenlendi: çalan parça kesilmeden yeni sıra uygulanır; liste boştan doluya geçtiyse yeniden başlat
+        if (!this.music?.isMyList || !this.music.updateQueue(this.settings.myList, this.settings.myListShuffle)) this.restartMusic().catch((e) => this.error('müzik', e));
+      } else if (this.music) {
         this.music.setStyle?.(this.settings.musicStyle);
         if ('followMood' in this.music) this.music.followMood = this.settings.youtubeFollowMood;
       }
@@ -254,7 +258,14 @@ export class Station {
       this.emit('musicStatus', st);
       if (st.state === 'dead') this.fallbackMusic(st.reason).catch(() => {});
     };
-    if (s.musicSource === 'youtube') {
+    if (s.musicSource === 'mylist' && s.myList?.length) {
+      this.music = new YouTubeMusic(this.engine, {
+        queue: s.myList, shuffle: s.myListShuffle, startId: this.pendingTrack, mode: 'embed',
+        onTrack, onStatus, log: (...a) => this.log(...a), tabBridge: this.bridge.tab,
+      });
+      this.pendingTrack = null;
+    } else if (s.musicSource === 'youtube' || s.musicSource === 'mylist') {
+      // 'mylist' ama liste boş: hazır yayınla başla
       this.music = new YouTubeMusic(this.engine, {
         url: s.youtubeUrl, mode: s.youtubeMode, followMood: s.youtubeFollowMood,
         onTrack, onStatus, log: (...a) => this.log(...a), tabBridge: this.bridge.tab,
@@ -283,6 +294,14 @@ export class Station {
     this.music = new GenerativeMusic(this.engine, { style: this.settings.musicStyle, onTrack: (m) => { this.emit('track', m); this.emitState(); }, log: (...a) => this.log(...a) });
     this.musicStatus = { state: 'playing', text: 'Yerleşik yedek müzik' };
     await this.music.start();
+  }
+
+  /** Müzik sekmesinden "şimdi çal": kişisel listedeki parçaya geç (liste henüz yüklenmediyse başlarken kullanılır). */
+  async playTrack(id) {
+    if (this.music?.isMyList && this.music.playId(id)) { this.emitState(); return { ok: true }; }
+    this.pendingTrack = id;
+    if (this.on && this.settings.musicSource === 'mylist' && this.settings.myList.some((t) => t.id === id)) await this.restartMusic();
+    return { ok: true, pending: true };
   }
 
   async restartMusic() {
@@ -563,9 +582,9 @@ export class Station {
         script = validateScript(json, { settings: s, storyIds: packets.map((x) => x.id), serious });
         if (script) writer = 'gemini';
         if (script?.dropped?.length) this.log(`yayın dili koruması ${script.dropped.length} satırı ayıkladı`, script.dropped);
-        // Ayıklamadan sonra senaryo fazla kısaldıysa yerel yazara geç
-        if (script && script.lines.length < 3) { script = null; writer = 'local'; }
-        else this.error('senaryo', new Error('geçersiz senaryo, yerel yazara geçildi'));
+        // Geçersiz senaryo ya da ayıklamadan sonra fazla kısalmış senaryo: yerel yazara geç (yalnızca o zaman uyar)
+        if (!script) this.error('senaryo', new Error('geçersiz senaryo, yerel yazara geçildi'));
+        else if (script.lines.length < 3) { script = null; writer = 'local'; this.error('senaryo', new Error('senaryo çok kısaldı, yerel yazara geçildi')); }
       } catch (e) {
         if (e instanceof GeminiError && e.authProblem) this.authFailed(e);
         else this.error('senaryo (yerel yazara geçildi)', e);

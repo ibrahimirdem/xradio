@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { ICON_NAMES } from '../../extension/ui/icons.js';
 
 const read = (p) => fs.readFileSync(new URL(`../../extension/${p}`, import.meta.url), 'utf8');
-const UI_FILES = ['popup.html', 'studio.html', 'ui/popup.js', 'ui/studio.js', 'ui/common.js', 'content/x-collector.js', 'lib/messages.js'];
+const UI_FILES = ['popup.html', 'studio.html', 'ui/popup.js', 'ui/studio.js', 'ui/common.js', 'ui/library.js', 'content/x-collector.js', 'lib/messages.js'];
 // Emoji ve piktogram blokları (✓ ✗ ✦ gibi yazı simgeleri serbest)
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{25A0}-\u{25FF}\u{2B00}-\u{2BFF}\u{1D400}-\u{1D7FF}]/u;
 
@@ -36,7 +36,7 @@ test('kullanılan her ikon gömülü sette var', () => {
     for (const m of html.matchAll(/data-icon="([a-z0-9-]+)"/g)) used.add(m[1]);
     for (const m of html.matchAll(/data-ic="([a-z0-9-]+)"/g)) { used.add(m[1]); used.add(m[1] + '-fill'); }
   }
-  const js = ['ui/popup.js', 'ui/studio.js', 'ui/common.js'].map(read).join('\n');
+  const js = ['ui/popup.js', 'ui/studio.js', 'ui/common.js', 'ui/library.js'].map(read).join('\n');
   const patterns = [
     /iconSvg\(\s*'([a-z0-9-]+)'/g,
     /setButton\([^,]+,\s*'([a-z0-9-]+)'/g,
@@ -44,6 +44,8 @@ test('kullanılan her ikon gömülü sette var', () => {
     /item\(\s*'([a-z0-9-]+)'/g,
     /tag\([^()]*,\s*'[a-z]*',\s*'([a-z0-9-]+)'\)/g,
     /'(?:ok|warn|fail|info)': '([a-z0-9-]+)'/g,
+    /iconBtn\(\s*'([a-z0-9-]+)'/g,
+    /\bbtn\(\s*'([a-z0-9-]+)'/g,
   ];
   for (const re of patterns) for (const m of js.matchAll(re)) for (const g of m.slice(1)) if (g) used.add(g);
   // İkon çağrısı içeren satırlardaki koşullu ikon adları (ör. engine === 'gemini' ? 'brain' : 'cpu')

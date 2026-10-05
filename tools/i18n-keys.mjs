@@ -10,7 +10,7 @@ function unescapeJs(s) { return s.replace(/\\'/g, "'").replace(/\\"/g, '"').repl
 
 export async function collectKeys() {
   const keys = new Set();
-  for (const f of ['ui/studio.js', 'ui/popup.js', 'ui/common.js']) {
+  for (const f of ['ui/studio.js', 'ui/popup.js', 'ui/common.js', 'ui/library.js']) {
     const src = fs.readFileSync(path.join(root, f), 'utf8');
     for (const m of src.matchAll(/\bt\(\s*'((?:[^'\\]|\\.)*)'/g)) keys.add(unescapeJs(m[1]));
   }

@@ -141,10 +141,12 @@ export const DEFAULT_SETTINGS = {
   city: '',
 
   // Müzik
-  musicSource: 'youtube',       // 'youtube' | 'generative' (internetsiz yedek) | 'stream' | 'none'
+  musicSource: 'youtube',       // 'youtube' | 'mylist' (kişisel liste) | 'generative' (internetsiz yedek) | 'stream' | 'none'
   youtubeUrl: 'https://www.youtube.com/watch?v=rFZHOHl-L8A',
   youtubeMode: 'auto',          // 'auto' (gömülü, olmazsa sekme) | 'embed' | 'tab'
   youtubeFollowMood: false,     // DJ'lerin müzik önerisine göre hazır yayınlar arasında geçiş
+  myList: [],                   // kişisel liste: [{ id, title, artist, duration, thumb }] (Müzik sekmesinden aranıp eklenir)
+  myListShuffle: false,
   musicStyle: 'auto',           // yerleşik yedek motor için
   streamUrl: '',
   masterVolume: 0.9,
@@ -204,6 +206,14 @@ export function mergeSettings(stored) {
   s.hostB = { ...DEFAULT_SETTINGS.hostB, ...((stored && stored.hostB) || {}) };
   if (!LANGUAGES.some((l) => l.code === s.language)) s.language = 'tr';
   if (!['system', 'light', 'dark'].includes(s.theme)) s.theme = 'system';
+  if (!['youtube', 'mylist', 'generative', 'stream', 'none'].includes(s.musicSource)) s.musicSource = 'youtube';
+  // Kişisel liste: geçerli video kimlikleri, tekrar yok, en fazla 500 parça
+  const seen = new Set();
+  s.myList = (Array.isArray(s.myList) ? s.myList : [])
+    .filter((t) => t && /^[A-Za-z0-9_-]{11}$/.test(t.id) && !seen.has(t.id) && seen.add(t.id))
+    .slice(0, 500)
+    .map((t) => ({ id: t.id, title: String(t.title || '').slice(0, 200), artist: String(t.artist || '').slice(0, 120), duration: Number(t.duration) || 0, thumb: String(t.thumb || ''), ...(t.live ? { live: true } : {}) }));
+  s.myListShuffle = !!s.myListShuffle;
   for (const k of ['muteWords', 'priorityAccounts', 'priorityWords']) {
     if (typeof s[k] === 'string') s[k] = s[k].split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
     if (!Array.isArray(s[k])) s[k] = [];
