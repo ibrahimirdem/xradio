@@ -164,6 +164,7 @@ export const DEFAULT_SETTINGS = {
   // Odak kalkanı
   focusShield: true,
   shieldSnoozeMinutes: 5,
+  xDock: true,                  // X'te sağ altta radyo düğmesi (Grok ve Sohbet'in üstünde)
 
   // Filtreler
   muteWords: [],

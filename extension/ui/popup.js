@@ -7,6 +7,32 @@ let state = null;
 let settings = null;
 const setBars = makeBars($('#bars'), 26);
 
+// X sayfasının içinde açıldıysa (content/x-dock.js): pencere kapatmak yerine çerçeveye haber verilir
+const params = new URLSearchParams(location.search);
+const EMBED = params.has('embed') && window.top !== window;
+const XTHEME = ['dark', 'light'].includes(params.get('xtheme')) ? params.get('xtheme') : '';
+const parentOrigin = (() => {
+  const o = location.ancestorOrigins?.[0] || '';
+  return /^https:\/\/(x|twitter)\.com$/.test(o) ? o : '*';
+})();
+const toParent = (msg) => { try { window.parent.postMessage({ ...msg }, parentOrigin); } catch { /* */ } };
+function closeUi() {
+  if (EMBED) toParent({ xradio: 'close' });
+  else window.close();
+}
+
+/** Çerçeve yüksekliği içeriğe göre ayarlansın diye boyut bildirilir. */
+function reportSize() {
+  if (!EMBED) return;
+  let last = 0;
+  const post = () => {
+    const h = Math.ceil(document.body.getBoundingClientRect().height);
+    if (h && Math.abs(h - last) > 1) { last = h; toParent({ xradio: 'size', h }); }
+  };
+  new ResizeObserver(post).observe(document.body);
+  post();
+}
+
 function renderHosts() {
   const A = settings.hostA; const B = settings.hostB;
   $('#dj-a .ini').textContent = (A.name || 'A')[0].toLocaleUpperCase(uiLocale());
@@ -26,7 +52,7 @@ function renderLangBanner() {
   text.insertAdjacentHTML('afterbegin', iconSvg('globe-simple', { size: 15 }));
   box.append(
     text,
-    h('button', { class: 'ghost sm', onclick: () => { bg('openStudio', { hash: '#hosgeldin' }); window.close(); } }, t('Değiştir')),
+    h('button', { class: 'ghost sm', onclick: () => { bg('openStudio', { hash: '#hosgeldin' }); closeUi(); } }, t('Değiştir')),
     h('button', { class: 'sm', onclick: async () => { await saveSettings({ languageConfirmed: true }); settings.languageConfirmed = true; renderLangBanner(); } }, t('Tamam')),
   );
 }
@@ -102,8 +128,15 @@ async function loadRecent() {
 }
 
 async function init() {
+  if (EMBED) {
+    document.documentElement.classList.add('embed');
+    $('#close-embed').classList.remove('hidden');
+    $('#close-embed').addEventListener('click', closeUi);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeUi(); });
+  }
   settings = await getSettings();
-  applyTheme(settings.theme);
+  // X'in içinde ve tema "sistem" ise X'in temasına uy
+  applyTheme(EMBED && settings.theme === 'system' && XTHEME ? XTHEME : settings.theme);
   setUiLang(settings.language);
   applyI18n(document);
   applyIcons(document);
@@ -113,6 +146,7 @@ async function init() {
   $('#vol-voice').value = settings.voiceVolume;
   await refresh();
   loadRecent();
+  reportSize();
 
   $('#toggle').addEventListener('click', async () => {
     $('#toggle').disabled = true;
@@ -127,7 +161,7 @@ async function init() {
     refresh();
   });
   $('#skip').addEventListener('click', async () => { const r = await cmd('skip'); toast(r?.text || t('Atlandı')); });
-  $('#open-studio').addEventListener('click', () => { bg('openStudio'); window.close(); });
+  $('#open-studio').addEventListener('click', () => { bg('openStudio'); closeUi(); });
   let volTimer;
   const onVol = () => {
     clearTimeout(volTimer);

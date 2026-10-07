@@ -54,3 +54,8 @@ body { width: 380px; min-height: 0; padding: 14px; display: flex; flex-direction
 
 .status { display: flex; flex-wrap: wrap; gap: 5px; }
 .status .notice { width: 100%; }
+
+/* X sayfasının içinde (content/x-dock.js çerçevesi): genişlik çerçeveden gelir, taşarsa kendi içinde kayar */
+html.embed, html.embed body { overflow-x: hidden; }
+html.embed body { width: auto; }
+html.embed ::-webkit-scrollbar { width: 8px; }

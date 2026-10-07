@@ -17,6 +17,7 @@
 - **Breaking news.** Truly urgent events (an earthquake, say) interrupt the music. It never turns into a wall of "BREAKING".
 - **No tweets read aloud.** The DJs summarize in their own words. Posts in other languages are translated.
 - **15 languages.** Detected from your browser on first run, and you can change it any time.
+- **Radio button on X.** While you browse x.com, a radio button sits above the Grok and Chat buttons (same look). Click it to open the full player inside the page. Refreshing the page doesn't interrupt the broadcast.
 - **Focus shield.** If you open X out of habit, you get the radio's status instead of the feed.
 - **Light and dark themes.** Follows your system, or pick one in Settings.
 - **Works without an API key.** The free local mode uses your browser's voices (English and Turkish). Add a free Gemini key for realistic voices and smarter commentary.

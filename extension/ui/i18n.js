@@ -233,6 +233,8 @@ export const EN = {
   'deprem\nyapay zekâ': 'earthquake\nartificial intelligence',
   'X\'i kendin açtığında akış yerine radyonun durumunu gösteren nazik bir ekran çıkar. Belirli bir paylaşım bağlantısı açarsan araya girmez.': 'When you open X yourself, a gentle screen shows the radio\'s status instead of the feed. It stays out of the way if you open a specific post link.',
   'Odak kalkanını aç': 'Enable focus shield',
+  "X'te radyo düğmesini göster": 'Show the radio button on X',
+  'Kapat': 'Close',
   '"Bakmam lazım" erteleme süresi': '"I need to look" snooze time',
   'Son dakikada masaüstü bildirimi': 'Desktop notification for breaking news',
   'Tarayıcı açılınca radyoyu başlat': 'Start the radio when the browser opens',

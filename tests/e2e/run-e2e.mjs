@@ -387,6 +387,7 @@ if (run('collector')) {
     check('"Takip edilenler" akışı seçildi', !!clicked);
     const shieldOnCollector = await xPage.evaluate(() => !!document.querySelector('xradio-shield'));
     check('Toplayıcı sekmesinde "dinleme noktası" ekranı var', shieldOnCollector);
+    check('Toplayıcı sekmesinde radyo düğmesi yok', !(await xPage.evaluate(() => !!document.querySelector('xradio-dock'))));
   }
   const board = await waitFor(async () => { const b = await swEval(() => self.xradio.getBoard()); return b.stories.length >= 5 && b; }, { timeout: 30000, label: 'hikâyeler' });
   const heads = (board?.stories || []).map((s) => s.headline);
@@ -411,6 +412,106 @@ if (run('collector')) {
   await sleep(1500);
   const tabsAfter = await swEval(() => chrome.tabs.query({ url: 'https://x.com/*' }));
   check('Radyo durunca toplayıcı sekme kapandı', !tabsAfter.some((t) => t.pinned));
+}
+
+// ====================================================================== 4b) X üzerindeki radyo düğmesi ve sayfa içi panel
+if (run('dock')) {
+  console.log('\n▶ Senaryo 4b: X\'te radyo düğmesi (Grok ve Sohbet\'in üstünde) ve sayfa içi kumanda');
+  await resetAll();
+  await setSettings({ apiKey: '', demoMode: true, musicSource: 'generative', talkiness: 'az', focusShield: false, xDock: true });
+  // X'in sağ alt köşesini taklit eden sayfa: Grok ve Sohbet düğmeleri, gerçek X'teki ölçü ve stillerle
+  const BTN = 'position:absolute;right:35px;width:55px;height:55px;border-radius:16px;background:rgba(0,0,0,.65);border:1px solid rgb(75,78,82);color:rgb(231,233,234);backdrop-filter:blur(12px);box-shadow:rgba(255,255,255,.2) 0 0 15px 0,rgba(255,255,255,.15) 0 0 3px 1px;padding:0';
+  const DOCK_HTML = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#000;color:#e7e9ea;font:15px system-ui;height:200vh">
+    <main style="padding:40px">X sayfası (radyo düğmesi testi)</main>
+    <div style="position:fixed;right:0;bottom:0;width:100%;height:0">
+      <div data-testid="GrokDrawer"><button data-testid="GrokDrawerHeader" aria-label="Grok" style="${BTN};bottom:79px" onclick="window.__grok=1">G</button></div>
+      <div data-testid="chat-drawer-root"><button data-testid="chat-drawer-main" aria-label="Sohbet" style="${BTN};bottom:12px">S</button></div>
+    </div></body></html>`;
+  await ctx.route(/^https:\/\/x\.com\/dock-test(\?.*)?$/, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: DOCK_HTML }));
+  const page = await ctx.newPage();
+  await page.setViewportSize({ width: 1360, height: 860 }).catch(() => {});
+  await page.goto('https://x.com/dock-test');
+  // Sabit konumlar kaydırma çubuğu hariç alana göre (gerçek tarayıcıda Windows kaydırma çubuğu ~15 px)
+  const vp = await page.evaluate(() => ({ w: document.documentElement.clientWidth, h: document.documentElement.clientHeight }));
+  const at = (right, bottom, size = 55) => ({ x: vp.w - right - size / 2, y: vp.h - bottom - size / 2 });
+  const hostAt = (p) => page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName === 'XRADIO-DOCK', p);
+  // Beklenen yer: Grok'un üstü (alt 79 + 55 + 12 = 146), aynı sağ hizada
+  const placed = await waitFor(() => hostAt(at(35, 146)), { timeout: 10000, interval: 300, label: 'radyo düğmesi' });
+  check('Radyo düğmesi Grok\'un üstünde, aynı hizada göründü', !!placed);
+  if (!placed) {
+    console.log('    tanı:', JSON.stringify(await page.evaluate(({ x, y }) => {
+      const g = document.querySelector('[data-testid="GrokDrawerHeader"]')?.getBoundingClientRect();
+      return { dock: !!document.querySelector('xradio-dock'), vw: innerWidth, vh: innerHeight, dpr: devicePixelRatio, grok: g && { right: innerWidth - g.right, bottom: innerHeight - g.bottom, w: g.width },
+        at: document.elementsFromPoint(x, y).slice(0, 3).map((e) => e.tagName + (e.dataset?.testid ? '#' + e.dataset.testid : '')), url: location.href };
+    }, at(35, 146))));
+  }
+  check('Grok düğmesi yerinde ve tıklanabilir', await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.dataset.testid === 'GrokDrawerHeader', at(35, 79)));
+  // Erişilebilirlik ağacından düğmenin adı (kapalı gölge DOM'u sayfa betiklerinden okunamaz)
+  const cdp = await ctx.newCDPSession(page);
+  const axButtons = async () => (await cdp.send('Accessibility.getFullAXTree')).nodes.filter((n) => n.role?.value === 'button').map((n) => n.name?.value || '');
+  check('Düğmenin erişilebilir adı radyonun durumunu söylüyor', (await axButtons()).includes('XRadio · Radyo kapalı'), (await axButtons()).join(' | '));
+  await snap(page, '4b-x-radyo-dugmesi.png');
+
+  // Tıkla → panel (popup.html?embed=1) düğme sütununun solunda açılır
+  const p0 = at(35, 146);
+  await page.mouse.click(p0.x, p0.y);
+  const popupFrame = () => page.frames().find((f) => f.url().includes('popup.html') && f.url().includes('embed=1'));
+  const frame = await waitFor(async () => { const f = popupFrame(); return f && (await f.evaluate(() => !!document.querySelector('#toggle span')).catch(() => false)) && f; }, { timeout: 10000, interval: 300, label: 'panel' });
+  check('Tıklayınca açılır pencere sayfanın içinde açıldı', !!frame, frame ? frame.url().split('/').slice(0, 3).join('/') + '/…' : '');
+  if (frame) {
+    check('Panel X\'in düğmelerinin solunda', await hostAt({ x: vp.w - 102 - 190, y: vp.h - 12 - 40 }));
+    check('Panelde gömülü düzen ve kapatma düğmesi var', await frame.evaluate(() => document.documentElement.classList.contains('embed') && !document.querySelector('#close-embed').classList.contains('hidden')));
+    await snap(page, '4b-x-panel-kapali.png');
+    // Panelden yayını başlat
+    await frame.click('#toggle');
+    const on = await waitFor(async () => { const s = await getState(); return s.on && s; }, { timeout: 20000, interval: 500, label: 'panelden başlatma' });
+    check('Panelden radyo başlatıldı', !!on);
+    const onUi = await waitFor(() => frame.evaluate(() => /durdur/i.test(document.querySelector('#toggle').textContent) && document.querySelector('#onair').className), { timeout: 8000, interval: 300, label: 'panel durumu' });
+    check('Panel yayın durumunu gösteriyor', !!onUi, onUi || '');
+    const live = await waitFor(async () => (await axButtons()).includes('XRadio · Yayında'), { timeout: 10000, interval: 500, label: 'düğme durumu' });
+    check('Düğme "yayında" durumuna geçti', !!live);
+    await sleep(1500);
+    await snap(page, '4b-x-panel-yayinda.png');
+
+    // Sayfa yenilenince yayın sürmeli: aynı ses belgesi (documentId), radyo açık, panel yeniden açık
+    const docBefore = await swEval(async () => (await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] }))[0]?.documentId);
+    const capsBefore = (await getState()).captions?.length || 0;
+    await page.reload();
+    await sleep(2500);
+    const docAfter = await swEval(async () => (await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] }))[0]?.documentId);
+    const stAfter = await getState();
+    check('Sayfa yenilenince yayın kesilmedi (aynı ses belgesi, radyo açık)', !!docBefore && docBefore === docAfter && stAfter.on, `belge ${docBefore?.slice(0, 8)} → ${docAfter?.slice(0, 8)} · altyazı ${capsBefore} → ${stAfter.captions?.length || 0}`);
+    const reopened = await waitFor(async () => { const f = popupFrame(); return f && (await f.evaluate(() => /durdur/i.test(document.querySelector('#toggle')?.textContent || '')).catch(() => false)); }, { timeout: 10000, interval: 300, label: 'panel yenilemeden sonra' });
+    check('Yenilemeden sonra panel yeniden açıldı ve yayını gösteriyor', !!reopened);
+
+    // Kapatma: paneldeki düğme, dışarı tıklama ve Esc
+    const f2 = popupFrame();
+    await f2?.click('#close-embed').catch(() => {});
+    check('Paneldeki kapat düğmesi paneli kapattı', !!(await waitFor(() => !popupFrame(), { timeout: 3000, interval: 100, label: 'kapatma' })));
+    await page.mouse.click(p0.x, p0.y);
+    await waitFor(() => popupFrame(), { timeout: 5000, interval: 200, label: 'yeniden açma' });
+    await page.mouse.click(200, 200);
+    check('Dışarı tıklayınca panel kapandı', !!(await waitFor(() => !popupFrame(), { timeout: 3000, interval: 100, label: 'dışarı tıklama' })));
+    await page.mouse.click(p0.x, p0.y);
+    await waitFor(() => popupFrame(), { timeout: 5000, interval: 200, label: 'yeniden açma' });
+    await page.keyboard.press('Escape');
+    check('Esc paneli kapattı', !!(await waitFor(() => !popupFrame(), { timeout: 3000, interval: 100, label: 'Esc' })));
+  }
+
+  // X'te bir pencere (fotoğraf görüntüleyici, gönderi yazma…) açılınca düğme çekilir, kapanınca geri gelir
+  await page.evaluate(() => { const m = document.createElement('div'); m.id = 'fake-modal'; m.setAttribute('aria-modal', 'true'); m.style.cssText = 'position:fixed;inset:10%;background:#111'; document.body.append(m); });
+  check('X penceresi açıkken düğme çekildi', !!(await waitFor(async () => !(await hostAt(at(35, 146))), { timeout: 3000, interval: 200, label: 'pencere' })));
+  await page.evaluate(() => document.getElementById('fake-modal').remove());
+  check('Pencere kapanınca düğme geri geldi', !!(await waitFor(() => hostAt(at(35, 146)), { timeout: 3000, interval: 200, label: 'pencere kapandı' })));
+
+  // Ayarlardan kapatılınca düğme kalkar, açılınca geri gelir
+  await setSettings({ xDock: false });
+  check('Ayar kapatılınca düğme kalktı', !!(await waitFor(() => page.evaluate(() => !document.querySelector('xradio-dock')), { timeout: 5000, interval: 200, label: 'kaldırma' })));
+  await setSettings({ xDock: true });
+  check('Ayar açılınca düğme geri geldi', !!(await waitFor(() => hostAt(at(35, 146)), { timeout: 5000, interval: 200, label: 'geri gelme' })));
+  await page.close();
+  await ctx.unroute(/^https:\/\/x\.com\/dock-test(\?.*)?$/);
+  await swEval(() => self.xradio.stopRadio());
 }
 
 // ====================================================================== 5) YouTube (internet gerekir)

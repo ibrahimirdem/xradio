@@ -20,6 +20,7 @@
 | 🎵 **YouTube müziği** | Canlı yayın (Lofi Girl, caz, synthwave, deep house…) ya da oynatma listesi, ek sekme açmadan arka planda çalar. Kendi YouTube bağlantını da verebilirsin. DJ konuşurken ses yumuşakça kısılır. |
 | 🕐 **Radyo ritmi** | Açılışta "sen yokken neler oldu" özeti, belirli aralıklarla gündem araları, saat başı bip sesleri ve kısa toparlama, akış sessizse kısa bir ara sohbet (su içmeyi, mola vermeyi hatırlatırlar). |
 | 💬 **Stüdyoya mesaj** | "Deprem hakkında son durum ne?" ya da "biraz caz çalın" yaz; DJ'ler mesajını canlı yayında okuyup cevaplar. |
+| 📻 **X'te radyo düğmesi** | x.com'da sağ altta, Grok ve Sohbet düğmelerinin üstünde onlarla aynı görünümde (renk, kenarlık, gölge X'in o anki temasından okunur) bir radyo düğmesi çıkar. Yayındayken köşesinde turuncu bir ışık yanar, DJ'ler konuşurken yanıp söner. Tıklayınca açılır pencerenin aynısı sayfanın içinde bir panelde açılır (`popup.html?embed=1`). Ses gizli ses belgesinde çaldığı için X sekmesini yenilemek ya da kapatmak yayını kesmez; panel açıksa yenilemeden sonra yeniden açılır. X'te bir pencere (fotoğraf, gönderi yazma) açıkken düğme çekilir; toplayıcı sekmesinde görünmez. Ayarlar → Odak kalkanı ve diğerleri'nden kapatılabilir. |
 | 🛡 **Odak kalkanı** | X'i kendin açarsan akış yerine radyonun durumu, bugün konuşulan başlıklar ve "bugün X'i açma denemen: 4" ekranı çıkar. DJ'ler de buna ara sıra tatlı tatlı takılır. Tek bir paylaşım bağlantısını açtığında kalkan araya girmez. |
 | 🗂 **Stüdyo** | Canlı altyazı, haber masası (bekleyen/anlatılan hikâyeler, kaynak paylaşımlara bağlantılar), yayın geçmişi (transkriptler), ayarlar ve sistem testi. |
 | 🆓 **Anahtarsız da çalışır** | Gemini anahtarı yoksa yerel mod devrededir: kurallarla haber kümeleme, şablonlu Türkçe ya da İngilizce diyaloglar ve Edge'in sesleri (ör. Emel / Ahmet). |
@@ -97,7 +98,7 @@ Radyo çalışırken X'i okumak için **sabitlenmiş küçük bir x.com sekmesi*
  │ x-hook.js: uygulamanın│  sayfa yapısı    │ ayrıştır → IndexedDB       │  kutusu  │ İstasyon                              │
  │ kendi yanıtlarını okur│ ───────────────▶ │ toplayıcıyı yenile (alarm) │ ───────▶ │  Haber masası: triyaj (Gemini)        │
  │ x-collector.js: DOM + │                  │ YouTube Referer kuralı     │          │   → hikâye, önem, son dakika, hafıza  │
- │ odak kalkanı          │                  │ kısayollar, rozet          │          │  Yayın saati: ne zaman konuşulacak    │
+ │ kalkan, radyo düğmesi │                  │ kısayollar, rozet          │          │  Yayın saati: ne zaman konuşulacak    │
  └──────────────────────┘                  └───────────────────────────┘          │  Yazar (Gemini) → iki DJ senaryosu    │
                                                                                     │  Ses (Gemini TTS, çok konuşmacılı)    │
    Açılır pencere / Stüdyo  ◀──── olaylar (durum, altyazı, pano) ─────────────────── │  Mikser: müzik kısma, limiter, jenerik│

@@ -615,6 +615,7 @@ function renderSettings() {
     groupHead('shield-check', t('Odak kalkanı ve diğerleri')),
     h('p', {}, t('X\'i kendin açtığında akış yerine radyonun durumunu gösteren nazik bir ekran çıkar. Belirli bir paylaşım bağlantısı açarsan araya girmez.')),
     inlineField(t('Odak kalkanını aç'), check('focusShield')),
+    inlineField(t("X'te radyo düğmesini göster"), check('xDock')),
     field(t('"Bakmam lazım" erteleme süresi'), select('shieldSnoozeMinutes', [2, 5, 10, 15].map((m) => [m, t('{n} dakika', { n: m })]))),
     inlineField(t('Son dakikada masaüstü bildirimi'), check('notifyBreaking')),
     inlineField(t('Tarayıcı açılınca radyoyu başlat'), check('autoStartOnBrowserOpen')),

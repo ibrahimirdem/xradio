@@ -30,6 +30,9 @@ const M = {
     shClose: 'Sekmeyi kapat',
     shSnooze: '5 dk bakmam lazım',
     shNote: 'Belirli bir paylaşımın bağlantısını açarsan kalkan araya girmez. Ayarlardan kapatabilirsin.',
+    // X üzerindeki radyo düğmesi
+    shDockOn: 'XRadio · Yayında',
+    shDockOff: 'XRadio · Radyo kapalı',
   },
   en: {
     authFailed: 'The Gemini API key was rejected. Switched to local mode — check the key in Settings.',
@@ -56,6 +59,8 @@ const M = {
     shClose: 'Close this tab',
     shSnooze: 'I need 5 minutes',
     shNote: "Opening a link to a specific post won't trigger the shield. You can turn it off in Settings.",
+    shDockOn: 'XRadio · On air',
+    shDockOff: 'XRadio · Radio off',
   },
 };
 

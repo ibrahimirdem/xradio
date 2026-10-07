@@ -17,6 +17,7 @@
 - **Son dakika.** Gerçekten acil olaylarda (ör. deprem) müzik kesilir; "SON DAKİKA" yağmuruna dönüşmez.
 - **Tweet okumaz.** DJ'ler haberi kendi cümleleriyle anlatır; başka dildeki paylaşımları çevirir.
 - **15 dil.** İlk açılışta tarayıcının dilinden seçilir, istediğin zaman değiştirebilirsin.
+- **X'te radyo düğmesi.** x.com'da gezinirken sağ altta, Grok ve Sohbet düğmelerinin üstünde onlarla aynı görünümde bir radyo düğmesi olur. Tıklayınca oynatıcı sayfanın içinde açılır. Sayfayı yenilemek yayını kesmez.
 - **Odak kalkanı.** Alışkanlıkla X'i açarsan akış yerine radyonun durumunu görürsün.
 - **Açık ve koyu tema.** Sistem ayarını izler ya da Ayarlar'dan seçilir.
 - **Anahtarsız da çalışır.** Ücretsiz yerel mod tarayıcının seslerini kullanır (Türkçe ve İngilizce). Gerçekçi sesler için ücretsiz bir Gemini anahtarı ekleyebilirsin.

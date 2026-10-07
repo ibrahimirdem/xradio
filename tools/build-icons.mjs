@@ -76,7 +76,7 @@ const UI_ICONS = {
 };
 
 // Odak kalkanı için yalnızca birkaç ikon (içerik betikleri modül içe aktaramaz)
-const SHIELD_ICONS = { broadcast: ['fill'], microphone: ['fill'], play: ['fill'], 'clock-counter-clockwise': ['regular'], 'app-window': ['regular'], x: ['bold'] };
+const SHIELD_ICONS = { broadcast: ['regular', 'fill'], microphone: ['fill'], play: ['fill'], 'clock-counter-clockwise': ['regular'], 'app-window': ['regular'], x: ['bold'] };
 
 function inner(name, weight) {
   const file = path.join(SRC, weight, weight === 'regular' ? `${name}.svg` : `${name}-${weight}.svg`);

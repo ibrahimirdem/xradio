@@ -159,6 +159,13 @@ async function getState() {
   return { ...(st || { on: false, phase: 'off' }), radioOn: !!(await session('radioOn')), collector: collector || null, inbox };
 }
 
+/** Radyo düğmesinin ihtiyacı kadar durum: açık mı, DJ'ler konuşuyor mu? */
+async function dockState() {
+  const on = !!(await session('radioOn'));
+  const st = on ? await toStation({ type: 'state' }) : null;
+  return { on, phase: on ? (st?.phase || 'music') : 'off' };
+}
+
 async function getBoard() {
   const b = await toStation({ type: 'board' });
   if (b) return b;
@@ -376,6 +383,18 @@ async function handleBg(msg, sender) {
         ui: shieldStrings(s.language, [s.hostA.name, s.hostB.name]),
       };
     }
+    // --- X üzerindeki radyo düğmesi (content/x-dock.js)
+    case 'dock:hello': {
+      const s = await getSettings();
+      const collectorId = await session('collectorTabId');
+      return {
+        collector: !!sender.tab && sender.tab.id === collectorId,
+        enabled: s.xDock !== false,
+        state: await dockState(),
+        ui: shieldStrings(s.language, [s.hostA.name, s.hostB.name]),
+      };
+    }
+    case 'dock:state': return dockState();
     case 'tweets:json': {
       let json;
       try { json = JSON.parse(msg.body); } catch { return { ok: false }; }

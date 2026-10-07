@@ -66,7 +66,8 @@
       ],
       "js": [
         "content/shield-icons.js",
-        "content/x-collector.js"
+        "content/x-collector.js",
+        "content/x-dock.js"
       ],
       "run_at": "document_start"
     },
@@ -79,6 +80,18 @@
         "content/yt-control.js"
       ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "popup.html"
+      ],
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "use_dynamic_url": true
     }
   ],
   "commands": {
