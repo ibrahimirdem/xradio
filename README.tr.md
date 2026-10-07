@@ -2,7 +2,7 @@
 
 **İki yapay zekâ DJ'i X (Twitter) akışını senin yerine okur ve önemli olanı, müzik eşliğinde, kendi dilinde sohbet ederek anlatır.** X'i yenileyip durma; sadece dinle.
 
-`v0.0.1 beta` · Edge ve Chrome eklentisi · [English](README.md)
+`v0.0.2 beta` · Edge ve Chrome eklentisi · [English](README.md)
 
 ![XRadio stüdyosu](docs/screenshots/studio-live.png)
 
@@ -24,7 +24,7 @@
 
 ## Kurulum
 
-1. [Releases](../../releases) sayfasından **`xradio-0.0.1.zip`** dosyasını indir ve klasöre çıkar. (Ya da depoyu klonlayıp `extension/` klasörünü kullan.)
+1. [Releases](../../releases) sayfasından **`xradio-0.0.2.zip`** dosyasını indir ve klasöre çıkar. (Ya da depoyu klonlayıp `extension/` klasörünü kullan.)
 2. Eklentiler sayfasını aç: **Edge:** `edge://extensions` · **Chrome:** `chrome://extensions`
 3. **Geliştirici modu**nu aç.
 4. **Paketlenmemiş öğe yükle**'ye tıkla ve çıkardığın klasörü (içinde `manifest.json` olan) seç.

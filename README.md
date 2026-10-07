@@ -2,7 +2,7 @@
 
 **Two AI radio DJs read your X (Twitter) timeline for you and talk you through what matters, over music, in your language.** Stop refreshing X. Just listen.
 
-`v0.0.1 beta` · Edge & Chrome extension · [Türkçe](README.tr.md)
+`v0.0.2 beta` · Edge & Chrome extension · [Türkçe](README.tr.md)
 
 ![XRadio studio: two DJs talking over music](docs/screenshots/studio-live.png)
 
@@ -24,7 +24,7 @@
 
 ## Install
 
-1. Download **`xradio-0.0.1.zip`** from [Releases](../../releases) and unzip it. (Or clone this repo and use the `extension/` folder.)
+1. Download **`xradio-0.0.2.zip`** from [Releases](../../releases) and unzip it. (Or clone this repo and use the `extension/` folder.)
 2. Open the extensions page:
    - **Edge:** `edge://extensions`
    - **Chrome:** `chrome://extensions`

@@ -1,6 +1,6 @@
 {
   "name": "xradio",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "XRadio — a browser radio where two AI DJs follow your X (Twitter) feed and talk you through the news over music (Edge/Chrome extension, beta).",
   "type": "module",
